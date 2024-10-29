@@ -9,7 +9,10 @@ class ApiService {
       String password, String cPassword, String role) async {
     final response = await http.post(
       Uri.parse('$baseUrl/register'),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: jsonEncode({
         'name': name,
         'email': email,
@@ -25,7 +28,10 @@ class ApiService {
   Future<Map<String, dynamic>> loginUser(String email, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/login'),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: jsonEncode({
         'email': email,
         'password': password,
@@ -41,6 +47,7 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
       },
       body: jsonEncode({'id': userId}),
     );
@@ -54,6 +61,7 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
       },
       body: jsonEncode({'id': userId}),
     );
@@ -67,6 +75,7 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
       },
     );
     if (response.statusCode == 200) {
@@ -85,6 +94,7 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
       },
       body: jsonEncode({'id': userId}),
     );
