@@ -1,0 +1,46 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin" // Flutter plugin
+}
+
+android {
+    namespace = "com.example.eventify"
+    compileSdk = 34  // Usando SDK 34
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+
+     defaultConfig {
+        applicationId "com.example.eventify"
+        minSdkVersion 21
+        targetSdkVersion 34 // Asegúrate de que sea compatible
+        versionCode 1
+        versionName "1.0"
+    }
+
+buildTypes {
+    release {
+        signingConfig = signingConfigs.debug // Usando firma de debug temporalmente
+        minifyEnabled true // Habilita el minimizado de código
+        shrinkResources true // Habilita la eliminación de recursos no utilizados
+        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+    }
+    debug {
+        minifyEnabled false // Evita el minimizado de código en debug
+        shrinkResources false // Evita la eliminación de recursos no utilizados en debug
+    }
+}
+
+}
+
+flutter {
+    source = "../.."
+}
