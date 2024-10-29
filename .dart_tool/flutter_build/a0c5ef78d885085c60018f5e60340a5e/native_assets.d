@@ -1,1 +1,0 @@
- C:\\Users\\anapr\\Desktop\\eventify\\.dart_tool\\flutter_build\\a0c5ef78d885085c60018f5e60340a5e\\native_assets.yaml: 
