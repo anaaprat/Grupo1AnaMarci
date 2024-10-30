@@ -4,13 +4,12 @@ import '../models/user.dart';
 import '../api_constants.dart';
 
 class ApiService {
-  // ApiService - registerUser
+  // Registro de usuario
   Future<Map<String, dynamic>> registerUser(String name, String email,
       String password, String cPassword, String role) async {
     try {
       final response = await http.post(
-        Uri.parse(
-            '$baseUrl/register'), // Asegúrate de que el endpoint sea el correcto
+        Uri.parse('$baseUrl/register'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -58,29 +57,24 @@ class ApiService {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       },
-      body: jsonEncode({
-        'id': userId,
-        'actived': true,
-      }),
+      body: jsonEncode({'id': userId}),
     );
+
     return _processResponse(response);
   }
 
   // Desactivar usuario
   Future<Map<String, dynamic>> deactivateUser(String token, int userId) async {
     final response = await http.post(
-      Uri.parse(
-          '$baseUrl/deactivate'), // Cambia a deactivate si es el endpoint correcto
+      Uri.parse('$baseUrl/deactivate'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       },
-      body: jsonEncode({
-        'id': userId,
-        'actived': false,
-      }),
+      body: jsonEncode({'id': userId}),
     );
+
     return _processResponse(response);
   }
 
@@ -106,16 +100,13 @@ class ApiService {
   // Eliminar usuario
   Future<Map<String, dynamic>> deleteUser(String token, int userId) async {
     final response = await http.post(
-      Uri.parse(
-          '$baseUrl/deleteUser'), // Cambia a deleteUser si es el endpoint correcto
+      Uri.parse('$baseUrl/deleteUser'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       },
-      body: jsonEncode({
-        'id': userId,
-      }),
+      body: jsonEncode({'id': userId}),
     );
     return _processResponse(response);
   }
@@ -124,8 +115,7 @@ class ApiService {
   Future<Map<String, dynamic>> updateUser(
       String token, int userId, Map<String, dynamic> updatedData) async {
     final response = await http.post(
-      Uri.parse(
-          '$baseUrl/updateUser'), // Cambia a updateUser si es el endpoint correcto
+      Uri.parse('$baseUrl/updateUser'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',

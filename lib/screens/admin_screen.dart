@@ -42,47 +42,67 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Future<void> _activateUser(int userId) async {
-    await _changeUserStatus(userId, '/activate', 'Usuario activado');
+    final response = await http.post(
+      Uri.parse('$baseUrl/activate'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${widget.token}',
+      },
+      body: jsonEncode({'id': userId}),
+    );
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuario activado.')),
+      );
+      _fetchUsers();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al activar usuario.')),
+      );
+    }
   }
 
   Future<void> _deactivateUser(int userId) async {
-    await _changeUserStatus(userId, '/deactivate', 'Usuario desactivado');
+    final response = await http.post(
+      Uri.parse('$baseUrl/deactivate'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${widget.token}',
+      },
+      body: jsonEncode({'id': userId}),
+    );
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuario desactivado.')),
+      );
+      _fetchUsers();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al desactivar usuario.')),
+      );
+    }
   }
 
   Future<void> _deleteUser(int userId) async {
     final response = await http.post(
       Uri.parse('$baseUrl/deleteUser'),
-      headers: {'Authorization': 'Bearer ${widget.token}'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${widget.token}',
+      },
       body: jsonEncode({'id': userId}),
     );
 
     if (response.statusCode == 200) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Usuario eliminado')),
+        const SnackBar(content: Text('Usuario eliminado.')),
       );
       _fetchUsers();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error al eliminar usuario.')),
-      );
-    }
-  }
-
-  Future<void> _changeUserStatus(int userId, String endpoint, String successMessage) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: {'Authorization': 'Bearer ${widget.token}'},
-      body: jsonEncode({'id': userId}),
-    );
-
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(successMessage)),
-      );
-      _fetchUsers();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al cambiar el estado del usuario.')),
       );
     }
   }
@@ -109,7 +129,8 @@ class _AdminScreenState extends State<AdminScreen> {
         itemCount: _users.length,
         itemBuilder: (context, index) {
           final user = _users[index];
-          final isActivated = user['status'] == 'active';
+          final isActivated = user['actived'] ==
+              true; // Asegúrate de que 'actived' esté bien definido.
 
           return Dismissible(
             key: ValueKey(user['id']),
@@ -203,7 +224,8 @@ class _AdminScreenState extends State<AdminScreen> {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundImage: NetworkImage(user['imageUrl'] ?? 'https://via.placeholder.com/150'),
+                      backgroundImage: NetworkImage(user['imageUrl'] ??
+                          'https://via.placeholder.com/150'),
                     ),
                     const SizedBox(width: 16),
                     Column(
