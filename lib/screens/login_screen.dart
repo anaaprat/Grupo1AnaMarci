@@ -3,7 +3,7 @@ import '../services/api_service.dart';
 import 'admin_screen.dart';
 import 'user_screen.dart';
 import 'organizer_screen.dart';
-import 'register_screen.dart'; // Importa la pantalla de registro
+import 'register_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   final TextEditingController _emailController = TextEditingController();
@@ -19,90 +19,80 @@ class LoginScreen extends StatelessWidget {
         _passwordController.text,
       );
 
-      print("Respuesta del servidor: $response"); // Imprime la respuesta completa
+      print("Respuesta del servidor: $response");
 
       if (response['success']) {
         String role = response['data']['role'];
         String token = response['data']['token'];
 
-        if (role == 'a') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => AdminScreen(token: token)),
-          );
-        } else if (role == 'o') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => OrganizerScreen(token: token)),
-          );
-        } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => UserScreen(token: token)),
-          );
+        Widget nextScreen;
+        switch (role) {
+          case 'a':
+            nextScreen = AdminScreen(token: token);
+            break;
+          case 'o':
+            nextScreen = OrganizerScreen(token: token);
+            break;
+          default:
+            nextScreen = UserScreen(token: token);
         }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${response['message']}')),
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => nextScreen),
         );
+      } else {
+        _showErrorSnackBar(context, response['message']);
       }
     } catch (e) {
-      print("Error: $e"); // Imprime el error en la consola
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al iniciar sesión.')),
-      );
+      print("Error: $e");
+      _showErrorSnackBar(context, 'Error al iniciar sesión.');
     }
+  }
+
+  void _showErrorSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.purple[800],
-        toolbarHeight: 150,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/login_header_image.png'), // Reemplaza con la imagen deseada
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-      ),
+      backgroundColor: Colors.grey[200],
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  labelStyle: TextStyle(color: Colors.purple[800]),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  filled: true,
-                  fillColor: Colors.purple[50],
+              const SizedBox(height: 40),
+              const Text(
+                'Eventify',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Billabong', // Fuente similar a la de Instagram
+                  color: Colors.purple,
                 ),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  labelStyle: TextStyle(color: Colors.purple[800]),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  filled: true,
-                  fillColor: Colors.purple[50],
-                ),
-                obscureText: true,
               ),
               const SizedBox(height: 30),
+              _buildTextField(
+                controller: _emailController,
+                label: 'Email',
+                icon: Icons.email,
+              ),
+              const SizedBox(height: 20),
+              _buildTextField(
+                controller: _passwordController,
+                label: 'Password',
+                icon: Icons.lock,
+                obscureText: true,
+              ),
+              const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -116,7 +106,7 @@ class LoginScreen extends StatelessWidget {
                   onPressed: () => _login(context),
                   child: const Text(
                     'Login',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                    style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
               ),
@@ -124,21 +114,46 @@ class LoginScreen extends StatelessWidget {
               Center(
                 child: TextButton(
                   onPressed: () {
-                    // Navega a la pantalla de registro si el usuario no tiene cuenta
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const RegisterScreen()),
                     );
                   },
                   child: const Text(
                     'Don’t have an account? Sign Up',
-                    style: TextStyle(color: Colors.purple),
+                    style: TextStyle(
+                      color: Colors.purple,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool obscureText = false,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: Colors.purple[800]),
+        labelStyle: TextStyle(color: Colors.purple[800]),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15.0),
+        ),
+        filled: true,
+        fillColor: Colors.purple[50],
       ),
     );
   }

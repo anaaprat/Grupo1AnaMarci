@@ -1,3 +1,4 @@
+import 'package:eventify/screens/editUser_screen.dart';
 import 'package:eventify/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -49,11 +50,25 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Future<void> _deleteUser(int userId) async {
-    await _changeUserStatus(userId, '/deleteUser', 'Usuario eliminado');
+    final response = await http.post(
+      Uri.parse('$baseUrl/deleteUser'),
+      headers: {'Authorization': 'Bearer ${widget.token}'},
+      body: jsonEncode({'id': userId}),
+    );
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuario eliminado')),
+      );
+      _fetchUsers();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al eliminar usuario.')),
+      );
+    }
   }
 
-  Future<void> _changeUserStatus(
-      int userId, String endpoint, String successMessage) async {
+  Future<void> _changeUserStatus(int userId, String endpoint, String successMessage) async {
     final response = await http.post(
       Uri.parse('$baseUrl$endpoint'),
       headers: {'Authorization': 'Bearer ${widget.token}'},
@@ -67,14 +82,12 @@ class _AdminScreenState extends State<AdminScreen> {
       _fetchUsers();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Error al cambiar el estado del usuario.')),
+        const SnackBar(content: Text('Error al cambiar el estado del usuario.')),
       );
     }
   }
 
   void _logout() {
-    // Implementa la lógica de cierre de sesión aquí (redireccionar a la pantalla de login, eliminar el token, etc.)
     Navigator.of(context).pushReplacementNamed('/login');
   }
 
@@ -86,9 +99,8 @@ class _AdminScreenState extends State<AdminScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            // Reemplazar la pantalla actual con la pantalla de login
             Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (context) => LoginScreen()),
+              MaterialPageRoute(builder: (context) => LoginScreen()),
             );
           },
         ),
@@ -150,8 +162,23 @@ class _AdminScreenState extends State<AdminScreen> {
                         ListTile(
                           leading: const Icon(Icons.edit),
                           title: const Text('Editar Usuario'),
-                          onTap: () {
-                            Navigator.pop(context);
+                          onTap: () async {
+                            Navigator.pop(context); // Cierra el modal
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EditUserScreen(
+                                  token: widget.token,
+                                  userId: user['id'],
+                                  currentName: user['name'],
+                                  currentRole: user['role'],
+                                ),
+                              ),
+                            );
+
+                            if (result == true) {
+                              _fetchUsers(); // Actualiza la lista de usuarios si la edición fue exitosa
+                            }
                           },
                         ),
                         ListTile(
@@ -176,8 +203,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundImage: NetworkImage(user['imageUrl'] ??
-                          'https://via.placeholder.com/150'),
+                      backgroundImage: NetworkImage(user['imageUrl'] ?? 'https://via.placeholder.com/150'),
                     ),
                     const SizedBox(width: 16),
                     Column(

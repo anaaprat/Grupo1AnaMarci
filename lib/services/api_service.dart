@@ -4,24 +4,33 @@ import '../models/user.dart';
 import '../api_constants.dart';
 
 class ApiService {
-  // Registro de usuario
+  // ApiService - registerUser
   Future<Map<String, dynamic>> registerUser(String name, String email,
       String password, String cPassword, String role) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/register'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: jsonEncode({
-        'name': name,
-        'email': email,
-        'password': password,
-        'c_password': cPassword,
-        'role': role,
-      }),
-    );
-    return _processResponse(response);
+    try {
+      final response = await http.post(
+        Uri.parse(
+            '$baseUrl/register'), // Asegúrate de que el endpoint sea el correcto
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'name': name,
+          'email': email,
+          'password': password,
+          'c_password': cPassword,
+          'role': role,
+        }),
+      );
+      return _processResponse(response);
+    } catch (e) {
+      print("Error al realizar la solicitud de registro: $e");
+      return {
+        'success': false,
+        'message': 'Error al realizar la solicitud de registro.'
+      };
+    }
   }
 
   // Login de usuario
@@ -60,7 +69,8 @@ class ApiService {
   // Desactivar usuario
   Future<Map<String, dynamic>> deactivateUser(String token, int userId) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/activate'),
+      Uri.parse(
+          '$baseUrl/deactivate'), // Cambia a deactivate si es el endpoint correcto
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -96,7 +106,8 @@ class ApiService {
   // Eliminar usuario
   Future<Map<String, dynamic>> deleteUser(String token, int userId) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/activate'),
+      Uri.parse(
+          '$baseUrl/deleteUser'), // Cambia a deleteUser si es el endpoint correcto
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -104,34 +115,49 @@ class ApiService {
       },
       body: jsonEncode({
         'id': userId,
-        'deleted': true, 
       }),
     );
     return _processResponse(response);
   }
 
   // Editar usuario
-  Future<Map<String, dynamic>> updateUser(String token, int userId) async {
+  Future<Map<String, dynamic>> updateUser(
+      String token, int userId, Map<String, dynamic> updatedData) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/updateUser'),
+      Uri.parse(
+          '$baseUrl/updateUser'), // Cambia a updateUser si es el endpoint correcto
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       },
-      body: jsonEncode({'id': userId}),
+      body: jsonEncode({
+        'id': userId,
+        ...updatedData,
+      }),
     );
     return _processResponse(response);
   }
 
   // Procesar respuesta de la API
   Map<String, dynamic> _processResponse(http.Response response) {
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
+    try {
+      final decodedResponse = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return decodedResponse;
+      } else {
+        return {
+          'success': false,
+          'message': decodedResponse['message'] ?? 'Error en la solicitud.',
+          'statusCode': response.statusCode,
+        };
+      }
+    } catch (e) {
+      print("Error al procesar la respuesta: $e");
       return {
         'success': false,
-        'message': 'Error en la solicitud: ${response.statusCode}',
+        'message': 'Error al procesar la respuesta.',
+        'statusCode': response.statusCode,
       };
     }
   }
