@@ -47,6 +47,7 @@ class _AdminScreenState extends State<AdminScreen> {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ${widget.token}',
+        'Accept': 'application/json',
       },
       body: jsonEncode({'id': userId}),
     );
@@ -69,6 +70,7 @@ class _AdminScreenState extends State<AdminScreen> {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ${widget.token}',
+        'Accept': 'application/json',
       },
       body: jsonEncode({'id': userId}),
     );
