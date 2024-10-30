@@ -1,3 +1,4 @@
+import 'package:eventify/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -24,7 +25,7 @@ class _AdminScreenState extends State<AdminScreen> {
   Future<void> _fetchUsers() async {
     final response = await http.get(
       Uri.parse('$baseUrl/users'),
-      headers: {'Authorization': 'Bearer ${widget.token}'}, // Utiliza el token de sesión
+      headers: {'Authorization': 'Bearer ${widget.token}'},
     );
 
     if (response.statusCode == 200) {
@@ -51,10 +52,11 @@ class _AdminScreenState extends State<AdminScreen> {
     await _changeUserStatus(userId, '/deleteUser', 'Usuario eliminado');
   }
 
-  Future<void> _changeUserStatus(int userId, String endpoint, String successMessage) async {
+  Future<void> _changeUserStatus(
+      int userId, String endpoint, String successMessage) async {
     final response = await http.post(
       Uri.parse('$baseUrl$endpoint'),
-      headers: {'Authorization': 'Bearer ${widget.token}'}, // Utiliza el token de sesión
+      headers: {'Authorization': 'Bearer ${widget.token}'},
       body: jsonEncode({'id': userId}),
     );
 
@@ -62,12 +64,18 @@ class _AdminScreenState extends State<AdminScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(successMessage)),
       );
-      _fetchUsers(); // Recarga la lista de usuarios
+      _fetchUsers();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al cambiar el estado del usuario.')),
+        const SnackBar(
+            content: Text('Error al cambiar el estado del usuario.')),
       );
     }
+  }
+
+  void _logout() {
+    // Implementa la lógica de cierre de sesión aquí (redireccionar a la pantalla de login, eliminar el token, etc.)
+    Navigator.of(context).pushReplacementNamed('/login');
   }
 
   @override
@@ -75,42 +83,112 @@ class _AdminScreenState extends State<AdminScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Panel de Administración'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // Reemplazar la pantalla actual con la pantalla de login
+            Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context) => LoginScreen()),
+            );
+          },
+        ),
       ),
       body: ListView.builder(
         itemCount: _users.length,
         itemBuilder: (context, index) {
           final user = _users[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          final isActivated = user['status'] == 'active';
+
+          return Dismissible(
+            key: ValueKey(user['id']),
+            background: Container(
+              color: isActivated ? Colors.orange : Colors.green,
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
                 children: [
-                  Text('Nombre: ${user['name']}'),
-                  Text('Role: ${user['role']}'),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () => _activateUser(user['id']),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green), // Cambiado a backgroundColor
-                        child: const Text('Activar'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () => _deactivateUser(user['id']),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), // Cambiado a backgroundColor
-                        child: const Text('Desactivar'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () => _deleteUser(user['id']),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red), // Cambiado a backgroundColor
-                        child: const Text('Eliminar'),
-                      ),
-                    ],
+                  Icon(
+                    isActivated ? Icons.block : Icons.check,
+                    color: Colors.white,
+                  ),
+                  Text(
+                    isActivated ? 'Desactivar' : 'Activar',
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ],
+              ),
+            ),
+            secondaryBackground: Container(
+              color: Colors.red,
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: const [
+                  Icon(Icons.edit, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text('Editar', style: TextStyle(color: Colors.white)),
+                  SizedBox(width: 20),
+                  Icon(Icons.delete, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text('Eliminar', style: TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
+            confirmDismiss: (direction) async {
+              if (direction == DismissDirection.startToEnd) {
+                isActivated
+                    ? await _deactivateUser(user['id'])
+                    : await _activateUser(user['id']);
+              } else if (direction == DismissDirection.endToStart) {
+                await showModalBottomSheet(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        ListTile(
+                          leading: const Icon(Icons.edit),
+                          title: const Text('Editar Usuario'),
+                          onTap: () {
+                            Navigator.pop(context);
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.delete),
+                          title: const Text('Eliminar Usuario'),
+                          onTap: () async {
+                            Navigator.pop(context);
+                            await _deleteUser(user['id']);
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                );
+              }
+              return false;
+            },
+            child: Card(
+              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundImage: NetworkImage(user['imageUrl'] ??
+                          'https://via.placeholder.com/150'),
+                    ),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Nombre: ${user['name']}'),
+                        Text('Role: ${user['role']}'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           );

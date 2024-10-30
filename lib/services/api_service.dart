@@ -49,7 +49,10 @@ class ApiService {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       },
-      body: jsonEncode({'id': userId}),
+      body: jsonEncode({
+        'id': userId,
+        'actived': true,
+      }),
     );
     return _processResponse(response);
   }
@@ -57,13 +60,16 @@ class ApiService {
   // Desactivar usuario
   Future<Map<String, dynamic>> deactivateUser(String token, int userId) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/deactivate'),
+      Uri.parse('$baseUrl/activate'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       },
-      body: jsonEncode({'id': userId}),
+      body: jsonEncode({
+        'id': userId,
+        'actived': false,
+      }),
     );
     return _processResponse(response);
   }
@@ -90,7 +96,24 @@ class ApiService {
   // Eliminar usuario
   Future<Map<String, dynamic>> deleteUser(String token, int userId) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/deleteUser'),
+      Uri.parse('$baseUrl/activate'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode({
+        'id': userId,
+        'deleted': true, 
+      }),
+    );
+    return _processResponse(response);
+  }
+
+  // Editar usuario
+  Future<Map<String, dynamic>> updateUser(String token, int userId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/updateUser'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
