@@ -32,7 +32,11 @@ class _AdminScreenState extends State<AdminScreen> {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       setState(() {
-        _users = data['data'];
+        _users = data['data'].map((userJson) {
+          // Convertir 'actived' a booleano
+          userJson['actived'] = userJson['actived'] == 1;
+          return userJson;
+        }).toList();
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -41,70 +45,78 @@ class _AdminScreenState extends State<AdminScreen> {
     }
   }
 
-  Future<void> _activateUser(int userId) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/activate'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${widget.token}',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({'id': userId}),
-    );
+  Future<void> _changeUserStatus(int userId, bool isActivated) async {
+    final endpoint = isActivated ? '/activate' : '/deactivate';
+    final actionMessage = isActivated ? 'activado' : 'desactivado';
 
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Usuario activado.')),
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.token}',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'id': userId}),
       );
-      _fetchUsers();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al activar usuario.')),
-      );
-    }
-  }
 
-  Future<void> _deactivateUser(int userId) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/deactivate'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${widget.token}',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({'id': userId}),
-    );
+      final responseBody = jsonDecode(response.body);
 
-    if (response.statusCode == 200) {
+      if (responseBody['success']) {
+        // Actualiza el estado del usuario en la lista
+        setState(() {
+          final userIndex = _users.indexWhere((user) => user['id'] == userId);
+          if (userIndex != -1) {
+            _users[userIndex]['actived'] = isActivated; // Cambiar el estado
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Usuario ${actionMessage} correctamente.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${responseBody['message']}')),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Usuario desactivado.')),
-      );
-      _fetchUsers();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al desactivar usuario.')),
+        SnackBar(content: Text('Excepción: ${e.toString()}')),
       );
     }
   }
 
   Future<void> _deleteUser(int userId) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/deleteUser'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${widget.token}',
-      },
-      body: jsonEncode({'id': userId}),
-    );
-
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Usuario eliminado.')),
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/deleteUser'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.token}',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'id': userId}),
       );
-      _fetchUsers();
-    } else {
+
+      final responseBody = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && responseBody['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Usuario eliminado.')),
+        );
+        _fetchUsers();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error: ${responseBody['message'] ?? 'No se pudo eliminar el usuario.'}',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al eliminar usuario.')),
+        SnackBar(content: Text('Excepción: ${e.toString()}')),
       );
     }
   }
@@ -131,23 +143,22 @@ class _AdminScreenState extends State<AdminScreen> {
         itemCount: _users.length,
         itemBuilder: (context, index) {
           final user = _users[index];
-          final isActivated = user['actived'] ==
-              true; // Asegúrate de que 'actived' esté bien definido.
 
           return Dismissible(
             key: ValueKey(user['id']),
             background: Container(
-              color: isActivated ? Colors.orange : Colors.green,
+              color: user['actived'] ? Colors.orange : Colors.green,
               alignment: Alignment.centerLeft,
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
                   Icon(
-                    isActivated ? Icons.block : Icons.check,
+                    user['actived'] ? Icons.lock : Icons.lock_open,
                     color: Colors.white,
                   ),
+                  const SizedBox(width: 8),
                   Text(
-                    isActivated ? 'Desactivar' : 'Activar',
+                    user['actived'] ? 'Desactivar' : 'Activar',
                     style: const TextStyle(color: Colors.white),
                   ),
                 ],
@@ -160,10 +171,6 @@ class _AdminScreenState extends State<AdminScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: const [
-                  Icon(Icons.edit, color: Colors.white),
-                  SizedBox(width: 8),
-                  Text('Editar', style: TextStyle(color: Colors.white)),
-                  SizedBox(width: 20),
                   Icon(Icons.delete, color: Colors.white),
                   SizedBox(width: 8),
                   Text('Eliminar', style: TextStyle(color: Colors.white)),
@@ -171,53 +178,43 @@ class _AdminScreenState extends State<AdminScreen> {
               ),
             ),
             confirmDismiss: (direction) async {
-              if (direction == DismissDirection.startToEnd) {
-                isActivated
-                    ? await _deactivateUser(user['id'])
-                    : await _activateUser(user['id']);
-              } else if (direction == DismissDirection.endToStart) {
-                await showModalBottomSheet(
+              if (direction == DismissDirection.endToStart) {
+                // Confirmación de eliminación
+                final confirmed = await showDialog<bool>(
                   context: context,
-                  builder: (BuildContext context) {
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        ListTile(
-                          leading: const Icon(Icons.edit),
-                          title: const Text('Editar Usuario'),
-                          onTap: () async {
-                            Navigator.pop(context); // Cierra el modal
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EditUserScreen(
-                                  token: widget.token,
-                                  userId: user['id'],
-                                  currentName: user['name'],
-                                  currentRole: user['role'],
-                                ),
-                              ),
-                            );
-
-                            if (result == true) {
-                              _fetchUsers(); // Actualiza la lista de usuarios si la edición fue exitosa
-                            }
-                          },
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text('Confirmar Eliminación'),
+                      content: const Text(
+                          '¿Estás seguro de que deseas eliminar este usuario?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.of(context).pop(false), // Cancelar
+                          child: const Text('Cancelar'),
                         ),
-                        ListTile(
-                          leading: const Icon(Icons.delete),
-                          title: const Text('Eliminar Usuario'),
-                          onTap: () async {
-                            Navigator.pop(context);
-                            await _deleteUser(user['id']);
-                          },
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.of(context).pop(true), // Confirmar
+                          child: const Text('Eliminar'),
                         ),
                       ],
                     );
                   },
                 );
+                return confirmed ?? false; // Retorna el resultado de la confirmación
               }
-              return false;
+              return false; // Evita que se complete la acción de deslizamiento
+            },
+            onDismissed: (direction) async {
+              if (direction == DismissDirection.startToEnd) {
+                // Activar o desactivar usuario
+                bool newStatus = !user['actived']; // Invertir el estado actual
+                await _changeUserStatus(user['id'], newStatus);
+              } else if (direction == DismissDirection.endToStart) {
+                // Eliminar usuario
+                await _deleteUser(user['id']);
+              }
             },
             child: Card(
               margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -230,12 +227,37 @@ class _AdminScreenState extends State<AdminScreen> {
                           'https://via.placeholder.com/150'),
                     ),
                     const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Nombre: ${user['name']}'),
-                        Text('Role: ${user['role']}'),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Nombre: ${user['name']}'),
+                          Text('Role: ${user['role']}'),
+                          Text(
+                              'Estado: ${user['actived'] ? 'Activado' : 'Desactivado'}'),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditUserScreen(
+                              token: widget.token,
+                              userId: user['id'],
+                              currentName: user['name'],
+                              currentRole: user['role'],
+                            ),
+                          ),
+                        );
+
+                        // Actualiza la lista de usuarios después de la edición
+                        if (result == true) {
+                          _fetchUsers(); // Vuelve a cargar los usuarios
+                        }
+                      },
                     ),
                   ],
                 ),

@@ -48,34 +48,20 @@ class ApiService {
     return _processResponse(response);
   }
 
-  // Activar usuario
-  Future<Map<String, dynamic>> activateUser(String token, int userId) async {
+  // Cambiar estado del usuario (activar/desactivar)
+  Future<Map<String, dynamic>> changeUserStatus(
+      String token, int userId, bool isActive) async {
+    final endpoint = isActive ? '/activate' : '/deactivate'; // Cambiado
     final response = await http.post(
-      Uri.parse('$baseUrl/activate'),
+      Uri.parse('$baseUrl$endpoint'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       },
-      body: jsonEncode({'id': userId}),
+      body: jsonEncode({'id': userId}), // Se envía el id del usuario
     );
-
-    return _processResponse(response);
-  }
-
-  // Desactivar usuario
-  Future<Map<String, dynamic>> deactivateUser(String token, int userId) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/deactivate'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({'id': userId}),
-    );
-
-    return _processResponse(response);
+    return _processResponse(response); // Manejo de la respuesta de la API
   }
 
   // Obtener todos los usuarios
