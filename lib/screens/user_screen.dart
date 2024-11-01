@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../api_constants.dart';
+import 'login_screen.dart';
 
 class UserScreen extends StatefulWidget {
-  final String token;  // Parámetro token
+  final String token; // Parámetro token
 
-  const UserScreen({super.key, required this.token});  // Constructor que recibe el token
+  const UserScreen(
+      {super.key, required this.token}); // Constructor que recibe el token
 
   @override
   _UserScreenState createState() => _UserScreenState();
 }
 
 class _UserScreenState extends State<UserScreen> {
-  Map<String, dynamic> _userData = {};  // Datos del usuario
+  Map<String, dynamic> _userData = {}; // Datos del usuario
 
   @override
   void initState() {
@@ -25,7 +27,7 @@ class _UserScreenState extends State<UserScreen> {
     final response = await http.get(
       Uri.parse('$baseUrl/user/profile'), // Endpoint de ejemplo para el usuario
       headers: {
-        'Authorization': 'Bearer ${widget.token}',  // Uso del token
+        'Authorization': 'Bearer ${widget.token}', // Uso del token
         'Content-Type': 'application/json'
       },
     );
@@ -42,6 +44,12 @@ class _UserScreenState extends State<UserScreen> {
     }
   }
 
+  void _logout() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,8 +62,18 @@ class _UserScreenState extends State<UserScreen> {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  const Text(
+                    'Esta es la pantalla de usuario',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
                   Text('Nombre: ${_userData['name']}'),
                   Text('Correo: ${_userData['email']}'),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _logout,
+                    child: const Text('Volver al Login'),
+                  ),
                 ],
               ),
       ),

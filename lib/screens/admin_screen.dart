@@ -104,7 +104,9 @@ class _AdminScreenState extends State<AdminScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Usuario eliminado.')),
         );
-        _fetchUsers();
+        setState(() {
+          _users.removeWhere((user) => user['id'] == userId);
+        });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -202,16 +204,17 @@ class _AdminScreenState extends State<AdminScreen> {
                     );
                   },
                 );
-                return confirmed ?? false; // Retorna el resultado de la confirmación
+                return confirmed ??
+                    false; // Retorna el resultado de la confirmación
+              } else if (direction == DismissDirection.startToEnd) {
+                // Permitir deslizamiento para activar/desactivar
+                await _changeUserStatus(user['id'], !user['actived']);
+                return false; // No eliminar el widget, solo actualizar el estado
               }
               return false; // Evita que se complete la acción de deslizamiento
             },
             onDismissed: (direction) async {
-              if (direction == DismissDirection.startToEnd) {
-                // Activar o desactivar usuario
-                bool newStatus = !user['actived']; // Invertir el estado actual
-                await _changeUserStatus(user['id'], newStatus);
-              } else if (direction == DismissDirection.endToStart) {
+              if (direction == DismissDirection.endToStart) {
                 // Eliminar usuario
                 await _deleteUser(user['id']);
               }

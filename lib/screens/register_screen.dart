@@ -13,9 +13,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   final ApiService apiService = ApiService();
-  final String _role = 'u';
+  String _role = 'u';
 
   Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
@@ -30,7 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         if (response['success']) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Registro exitoso!')),
+            const SnackBar(content: Text('Registration successful!')),
           );
           Navigator.pop(context);
         } else {
@@ -39,9 +40,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           );
         }
       } catch (e) {
-        print("Error de registro: $e");
+        print("Registration error: $e");
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al registrar el usuario.')),
+          const SnackBar(content: Text('Failed to register user.')),
         );
       }
     }
@@ -92,6 +93,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   label: 'Confirm Password',
                   icon: Icons.lock_outline,
                   obscureText: true,
+                ),
+                const SizedBox(height: 20),
+                DropdownButtonFormField<String>(
+                  value: _role,
+                  items: const [
+                    DropdownMenuItem(value: 'u', child: Text('User')),
+                    DropdownMenuItem(value: 'o', child: Text('Organizer')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _role = value ?? 'u';
+                    });
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Role',
+                    prefixIcon:
+                        Icon(Icons.person_outline, color: Colors.purple[800]),
+                    labelStyle: TextStyle(color: Colors.purple[800]),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15.0),
+                    ),
+                    filled: true,
+                    fillColor: Colors.purple[50],
+                  ),
                 ),
                 const SizedBox(height: 40),
                 SizedBox(

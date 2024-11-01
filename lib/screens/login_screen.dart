@@ -19,7 +19,7 @@ class LoginScreen extends StatelessWidget {
         _passwordController.text,
       );
 
-      print("Respuesta del servidor: $response");
+      print("Server response: $response");
 
       if (response['success']) {
         String role = response['data']['role'];
@@ -42,11 +42,30 @@ class LoginScreen extends StatelessWidget {
           MaterialPageRoute(builder: (context) => nextScreen),
         );
       } else {
-        _showErrorSnackBar(context, response['message']);
+        String errorMessage;
+        String errorType =
+            response['data']?['error'] ?? response['message'] ?? '';
+        switch (errorType) {
+          case 'Unauthorized':
+            errorMessage = 'Incorrect email or password.';
+            break;
+          case "Email don't confirmed":
+            errorMessage = 'Email is not confirmed.';
+            break;
+          case "User don't activated":
+            errorMessage = 'Account is not activated by the administrator.';
+            break;
+          case 'User deleted':
+            errorMessage = 'Account has been deleted by the administrator.';
+            break;
+          default:
+            errorMessage = 'An error occurred: $errorType';
+        }
+        _showErrorSnackBar(context, errorMessage);
       }
     } catch (e) {
       print("Error: $e");
-      _showErrorSnackBar(context, 'Error al iniciar sesión.');
+      _showErrorSnackBar(context, 'An error occurred while logging in.');
     }
   }
 
@@ -75,7 +94,7 @@ class LoginScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  fontFamily: 'Billabong', // Fuente similar a la de Instagram
+                  fontFamily: 'Billabong',
                   color: Colors.purple,
                 ),
               ),
