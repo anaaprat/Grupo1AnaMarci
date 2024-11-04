@@ -14,7 +14,7 @@ class EventifyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: LoginScreen(), // La pantalla de inicio es LoginScreen
+      home: LoginScreen(),
     );
   }
 }
