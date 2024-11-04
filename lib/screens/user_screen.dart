@@ -5,17 +5,17 @@ import '../api_constants.dart';
 import 'login_screen.dart';
 
 class UserScreen extends StatefulWidget {
-  final String token; // Parámetro token
+  final String token; 
 
   const UserScreen(
-      {super.key, required this.token}); // Constructor que recibe el token
+      {super.key, required this.token});
 
   @override
   _UserScreenState createState() => _UserScreenState();
 }
 
 class _UserScreenState extends State<UserScreen> {
-  Map<String, dynamic> _userData = {}; // Datos del usuario
+  Map<String, dynamic> _userData = {}; 
 
   @override
   void initState() {
@@ -25,9 +25,9 @@ class _UserScreenState extends State<UserScreen> {
 
   Future<void> _fetchUserData() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/user/profile'), // Endpoint de ejemplo para el usuario
+      Uri.parse('$baseUrl/user/profile'), 
       headers: {
-        'Authorization': 'Bearer ${widget.token}', // Uso del token
+        'Authorization': 'Bearer ${widget.token}', 
         'Content-Type': 'application/json'
       },
     );

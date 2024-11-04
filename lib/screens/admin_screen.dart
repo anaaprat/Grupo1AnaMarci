@@ -63,7 +63,6 @@ class _AdminScreenState extends State<AdminScreen> {
       final responseBody = jsonDecode(response.body);
 
       if (responseBody['success']) {
-        // Actualiza el estado del usuario en la lista
         setState(() {
           final userIndex = _users.indexWhere((user) => user['id'] == userId);
           if (userIndex != -1) {
@@ -181,7 +180,6 @@ class _AdminScreenState extends State<AdminScreen> {
             ),
             confirmDismiss: (direction) async {
               if (direction == DismissDirection.endToStart) {
-                // Confirmación de eliminación
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (context) {
@@ -191,31 +189,26 @@ class _AdminScreenState extends State<AdminScreen> {
                           '¿Estás seguro de que deseas eliminar este usuario?'),
                       actions: [
                         TextButton(
-                          onPressed: () =>
-                              Navigator.of(context).pop(false), // Cancelar
+                          onPressed: () => Navigator.of(context).pop(false),
                           child: const Text('Cancelar'),
                         ),
                         TextButton(
-                          onPressed: () =>
-                              Navigator.of(context).pop(true), // Confirmar
+                          onPressed: () => Navigator.of(context).pop(true),
                           child: const Text('Eliminar'),
                         ),
                       ],
                     );
                   },
                 );
-                return confirmed ??
-                    false; // Retorna el resultado de la confirmación
+                return confirmed ?? false;
               } else if (direction == DismissDirection.startToEnd) {
-                // Permitir deslizamiento para activar/desactivar
                 await _changeUserStatus(user['id'], !user['actived']);
-                return false; // No eliminar el widget, solo actualizar el estado
+                return false;
               }
-              return false; // Evita que se complete la acción de deslizamiento
+              return false;
             },
             onDismissed: (direction) async {
               if (direction == DismissDirection.endToStart) {
-                // Eliminar usuario
                 await _deleteUser(user['id']);
               }
             },
@@ -256,9 +249,8 @@ class _AdminScreenState extends State<AdminScreen> {
                           ),
                         );
 
-                        // Actualiza la lista de usuarios después de la edición
                         if (result == true) {
-                          _fetchUsers(); // Vuelve a cargar los usuarios
+                          _fetchUsers();
                         }
                       },
                     ),

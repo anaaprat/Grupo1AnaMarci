@@ -4,17 +4,17 @@ import 'dart:convert';
 import '../api_constants.dart';
 
 class OrganizerScreen extends StatefulWidget {
-  final String token;  // Parámetro token
+  final String token; // Parámetro token
 
-  const OrganizerScreen({super.key, required this.token});  // Constructor que recibe el token
+  const OrganizerScreen(
+      {super.key, required this.token}); // Constructor que recibe el token
 
   @override
   _OrganizerScreenState createState() => _OrganizerScreenState();
 }
 
 class _OrganizerScreenState extends State<OrganizerScreen> {
-  List<dynamic> _events = [];  // Suponiendo que el organizador tiene acceso a eventos
-
+  List<dynamic> _events = [];
   @override
   void initState() {
     super.initState();
@@ -23,9 +23,9 @@ class _OrganizerScreenState extends State<OrganizerScreen> {
 
   Future<void> _fetchOrganizerData() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/organizer/events'), // Endpoint de ejemplo para el organizador
+      Uri.parse('$baseUrl/organizer/events'),
       headers: {
-        'Authorization': 'Bearer ${widget.token}',  // Uso del token
+        'Authorization': 'Bearer ${widget.token}',
         'Content-Type': 'application/json'
       },
     );
