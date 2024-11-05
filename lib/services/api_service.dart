@@ -51,7 +51,7 @@ class ApiService {
   // Cambiar estado del usuario (activar/desactivar)
   Future<Map<String, dynamic>> changeUserStatus(
       String token, int userId, bool isActive) async {
-    final endpoint = isActive ? '/activate' : '/deactivate'; 
+    final endpoint = isActive ? '/activate' : '/deactivate';
     final response = await http.post(
       Uri.parse('$baseUrl$endpoint'),
       headers: {
@@ -59,9 +59,9 @@ class ApiService {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       },
-      body: jsonEncode({'id': userId}), 
+      body: jsonEncode({'id': userId}),
     );
-    return _processResponse(response); 
+    return _processResponse(response);
   }
 
   // Obtener todos los usuarios
@@ -135,6 +135,29 @@ class ApiService {
         'message': 'Error al procesar la respuesta.',
         'statusCode': response.statusCode,
       };
+    }
+  }
+
+// Método para obtener eventos
+  Future<List<dynamic>?> fetchEvents(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/events'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'];
+      } else {
+        print('Error al obtener eventos: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error al obtener eventos: $e');
+      return null;
     }
   }
 }
