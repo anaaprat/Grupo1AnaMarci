@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_provider.dart';
 import 'admin_screen.dart';
 import 'user_screen.dart';
 import 'organizer_screen.dart';
@@ -8,64 +9,34 @@ import 'register_screen.dart';
 class LoginScreen extends StatelessWidget {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final ApiService apiService = ApiService();
 
   LoginScreen({super.key});
 
   Future<void> _login(BuildContext context) async {
-    try {
-      final response = await apiService.loginUser(
-        _emailController.text,
-        _passwordController.text,
-      );
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.login(_emailController.text, _passwordController.text);
 
-      print("Server response: $response");
+    if (authProvider.errorMessage != null) {
+      _showErrorSnackBar(context, authProvider.errorMessage!);
+    } else {
+      Widget nextScreen;
+      String userEmail = authProvider.email!; // Aseguramos que el email no sea null
 
-      if (response['success']) {
-        String role = response['data']['role'];
-        String token = response['data']['token'];
-
-        Widget nextScreen;
-        switch (role) {
-          case 'a':
-            nextScreen = AdminScreen(token: token);
-            break;
-          case 'o':
-            nextScreen = OrganizerScreen(token: token);
-            break;
-          default:
-            nextScreen = UserScreen(token: token);
-        }
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => nextScreen),
-        );
-      } else {
-        String errorMessage;
-        String errorType =
-            response['data']?['error'] ?? response['message'] ?? '';
-        switch (errorType) {
-          case 'Unauthorized':
-            errorMessage = 'Incorrect email or password.';
-            break;
-          case "Email don't confirmed":
-            errorMessage = 'Email is not confirmed.';
-            break;
-          case "User don't activated":
-            errorMessage = 'Account is not activated by the administrator.';
-            break;
-          case 'User deleted':
-            errorMessage = 'Account has been deleted by the administrator.';
-            break;
-          default:
-            errorMessage = 'An error occurred: $errorType';
-        }
-        _showErrorSnackBar(context, errorMessage);
+      switch (authProvider.role) {
+        case 'a':
+          nextScreen = AdminScreen(token: authProvider.token!);
+          break;
+        case 'o':
+          nextScreen = OrganizerScreen(token: authProvider.token!);
+          break;
+        default:
+          nextScreen = UserScreen(token: authProvider.token!, userEmail: userEmail);
       }
-    } catch (e) {
-      print("Error: $e");
-      _showErrorSnackBar(context, 'An error occurred while logging in.');
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => nextScreen),
+      );
     }
   }
 
@@ -80,6 +51,8 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+
     return Scaffold(
       backgroundColor: Colors.grey[200],
       body: SingleChildScrollView(
@@ -122,11 +95,14 @@ class LoginScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10.0),
                     ),
                   ),
-                  onPressed: () => _login(context),
-                  child: const Text(
-                    'Login',
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
+                  onPressed:
+                      authProvider.isLoading ? null : () => _login(context),
+                  child: authProvider.isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Login',
+                          style: TextStyle(fontSize: 18, color: Colors.white),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),

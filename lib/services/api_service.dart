@@ -34,18 +34,26 @@ class ApiService {
 
   // Login de usuario
   Future<Map<String, dynamic>> loginUser(String email, String password) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/login'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-      }),
-    );
-    return _processResponse(response);
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/login'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      );
+      return _processResponse(response);
+    } catch (e) {
+      print("Error al realizar la solicitud de login: $e");
+      return {
+        'success': false,
+        'message': 'Error al realizar la solicitud de login.'
+      };
+    }
   }
 
   // Cambiar estado del usuario (activar/desactivar)
@@ -115,11 +123,102 @@ class ApiService {
     return _processResponse(response);
   }
 
+  // Obtener un usuario específico usando su email
+  Future<Map<String, dynamic>> fetchUserData(
+      String token, String userEmail) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        if (data['success'] == true && data['data'] is List) {
+          final List users = data['data'];
+          final user = users.firstWhere(
+            (u) => u['email'] == userEmail,
+            orElse: () => null,
+          );
+
+          if (user != null) {
+            return user;
+          } else {
+            print('Usuario no encontrado en la lista.');
+            return {};
+          }
+        } else {
+          print('Formato inesperado en la respuesta.');
+          return {};
+        }
+      } else {
+        print(
+            'Error al obtener datos de usuarios. Código: ${response.statusCode}');
+        return {};
+      }
+    } catch (e) {
+      print("Error al realizar la solicitud de usuario: $e");
+      return {};
+    }
+  }
+
+  // Obtener la lista de eventos
+  Future<List<dynamic>?> fetchEvents(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/events'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        // Verificar que `data['data']` es una lista antes de filtrar y ordenar
+        if (data['data'] is List) {
+          List<dynamic> events = data['data'];
+
+          // Obtener solo eventos que aún no hayan comenzado y ordenarlos
+          DateTime now = DateTime.now();
+          List<dynamic> upcomingEvents = events.where((event) {
+            DateTime eventDate = DateTime.parse(event['start_time']);
+            return eventDate.isAfter(now); // Filtra eventos futuros
+          }).toList();
+
+          // Ordenar los eventos cronológicamente de más nuevo a más antiguo
+          upcomingEvents.sort((a, b) {
+            DateTime dateA = DateTime.parse(a['start_time']);
+            DateTime dateB = DateTime.parse(b['start_time']);
+            return dateB.compareTo(dateA); // Orden descendente
+          });
+
+          return upcomingEvents;
+        } else {
+          print('Formato de datos inesperado.');
+          return null;
+        }
+      } else {
+        print('Error al obtener eventos: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error al obtener eventos: $e');
+      return null;
+    }
+  }
+
   // Procesar respuesta de la API
   Map<String, dynamic> _processResponse(http.Response response) {
     try {
       final decodedResponse = jsonDecode(response.body);
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return decodedResponse;
       } else {
         return {
@@ -135,29 +234,6 @@ class ApiService {
         'message': 'Error al procesar la respuesta.',
         'statusCode': response.statusCode,
       };
-    }
-  }
-
-// Método para obtener eventos
-  Future<List<dynamic>?> fetchEvents(String token) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/events'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['data'];
-      } else {
-        print('Error al obtener eventos: ${response.statusCode}');
-        return null;
-      }
-    } catch (e) {
-      print('Error al obtener eventos: $e');
-      return null;
     }
   }
 }
