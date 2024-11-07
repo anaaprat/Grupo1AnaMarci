@@ -181,22 +181,19 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // Verificar que `data['data']` es una lista antes de filtrar y ordenar
         if (data['data'] is List) {
           List<dynamic> events = data['data'];
 
-          // Obtener solo eventos que aún no hayan comenzado y ordenarlos
           DateTime now = DateTime.now();
           List<dynamic> upcomingEvents = events.where((event) {
             DateTime eventDate = DateTime.parse(event['start_time']);
-            return eventDate.isAfter(now); // Filtra eventos futuros
+            return eventDate.isAfter(now);
           }).toList();
 
-          // Ordenar los eventos cronológicamente de más nuevo a más antiguo
           upcomingEvents.sort((a, b) {
             DateTime dateA = DateTime.parse(a['start_time']);
             DateTime dateB = DateTime.parse(b['start_time']);
-            return dateB.compareTo(dateA); // Orden descendente
+            return dateB.compareTo(dateA);
           });
 
           return upcomingEvents;
@@ -214,7 +211,29 @@ class ApiService {
     }
   }
 
-  // Procesar respuesta de la API
+  //Filtrar eventos
+  Future<List<dynamic>?> fetchCategories(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/categories'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'];
+      } else {
+        print('Error al obtener categorías: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error al obtener categorías: $e');
+      return null;
+    }
+  }
+
   Map<String, dynamic> _processResponse(http.Response response) {
     try {
       final decodedResponse = jsonDecode(response.body);

@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import 'login_screen.dart';
 
-// Importamos los widgets personalizados
 import '../widgets/music_event_card.dart';
 import '../widgets/sport_event_card.dart';
 import '../widgets/tech_event_card.dart';
@@ -25,8 +24,6 @@ class _UserScreenState extends State<UserScreen> {
   List<dynamic> _filteredEvents = [];
   bool _isEventsLoading = true;
   bool _isUserLoading = true;
-  String?
-      _selectedCategory; // Almacena la categoría seleccionada para el filtro
 
   @override
   void initState() {
@@ -137,10 +134,9 @@ class _UserScreenState extends State<UserScreen> {
 
   void _filterEvents(String? category) {
     setState(() {
-      _selectedCategory = category;
       if (category == null) {
         _filteredEvents =
-            _allEvents; // Mostrar todos los eventos si no hay filtro
+            _allEvents; 
       } else {
         _filteredEvents =
             _allEvents.where((event) => event['category'] == category).toList();
@@ -238,7 +234,7 @@ class _UserScreenState extends State<UserScreen> {
                 ListTile(
                   leading:
                       const Icon(Icons.sports_soccer, color: Colors.orange),
-                  title: const Text("Sports"),
+                  title: const Text("Sport"),
                   onTap: () {
                     _filterEvents("Sport");
                     Navigator.of(context).pop();
@@ -253,7 +249,7 @@ class _UserScreenState extends State<UserScreen> {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.clear, color: Colors.red),
+                  leading: const Icon(Icons.clear, color: Colors.black),
                   title: const Text("Clear Filter"),
                   onTap: () {
                     _filterEvents(null);

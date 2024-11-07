@@ -33,21 +33,20 @@ class _AdminScreenState extends State<AdminScreen> {
       final data = jsonDecode(response.body);
       setState(() {
         _users = data['data'].map((userJson) {
-          // Convertir 'actived' a booleano
           userJson['actived'] = userJson['actived'] == 1;
           return userJson;
         }).toList();
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al cargar usuarios.')),
+        const SnackBar(content: Text('Failed to load users.')),
       );
     }
   }
 
   Future<void> _changeUserStatus(int userId, bool isActivated) async {
     final endpoint = isActivated ? '/activate' : '/deactivate';
-    final actionMessage = isActivated ? 'activado' : 'desactivado';
+    final actionMessage = isActivated ? 'activated' : 'deactivated';
 
     try {
       final response = await http.post(
@@ -66,12 +65,12 @@ class _AdminScreenState extends State<AdminScreen> {
         setState(() {
           final userIndex = _users.indexWhere((user) => user['id'] == userId);
           if (userIndex != -1) {
-            _users[userIndex]['actived'] = isActivated; // Cambiar el estado
+            _users[userIndex]['actived'] = isActivated;
           }
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Usuario ${actionMessage} correctamente.')),
+          SnackBar(content: Text('User $actionMessage successfully.')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -80,7 +79,7 @@ class _AdminScreenState extends State<AdminScreen> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Excepción: ${e.toString()}')),
+        SnackBar(content: Text('Exception: ${e.toString()}')),
       );
     }
   }
@@ -101,7 +100,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
       if (response.statusCode == 200 && responseBody['success']) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Usuario eliminado.')),
+          const SnackBar(content: Text('User deleted.')),
         );
         setState(() {
           _users.removeWhere((user) => user['id'] == userId);
@@ -110,14 +109,14 @@ class _AdminScreenState extends State<AdminScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Error: ${responseBody['message'] ?? 'No se pudo eliminar el usuario.'}',
+              'Error: ${responseBody['message'] ?? 'Could not delete user.'}',
             ),
           ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Excepción: ${e.toString()}')),
+        SnackBar(content: Text('Exception: ${e.toString()}')),
       );
     }
   }
@@ -130,7 +129,7 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Panel de Administración'),
+        title: const Text('Admin Panel'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -159,7 +158,7 @@ class _AdminScreenState extends State<AdminScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    user['actived'] ? 'Desactivar' : 'Activar',
+                    user['actived'] ? 'Deactivate' : 'Activate',
                     style: const TextStyle(color: Colors.white),
                   ),
                 ],
@@ -174,7 +173,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 children: const [
                   Icon(Icons.delete, color: Colors.white),
                   SizedBox(width: 8),
-                  Text('Eliminar', style: TextStyle(color: Colors.white)),
+                  Text('Delete', style: TextStyle(color: Colors.white)),
                 ],
               ),
             ),
@@ -184,17 +183,17 @@ class _AdminScreenState extends State<AdminScreen> {
                   context: context,
                   builder: (context) {
                     return AlertDialog(
-                      title: const Text('Confirmar Eliminación'),
+                      title: const Text('Confirm Deletion'),
                       content: const Text(
-                          '¿Estás seguro de que deseas eliminar este usuario?'),
+                          'Are you sure you want to delete this user?'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('Cancelar'),
+                          child: const Text('Cancel'),
                         ),
                         TextButton(
                           onPressed: () => Navigator.of(context).pop(true),
-                          child: const Text('Eliminar'),
+                          child: const Text('Delete'),
                         ),
                       ],
                     );
@@ -227,10 +226,10 @@ class _AdminScreenState extends State<AdminScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Nombre: ${user['name']}'),
+                          Text('Name: ${user['name']}'),
                           Text('Role: ${user['role']}'),
                           Text(
-                              'Estado: ${user['actived'] ? 'Activado' : 'Desactivado'}'),
+                              'Status: ${user['actived'] ? 'Activated' : 'Deactivated'}'),
                         ],
                       ),
                     ),
