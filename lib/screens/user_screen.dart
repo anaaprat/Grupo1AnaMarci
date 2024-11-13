@@ -254,7 +254,7 @@ class _UserScreenState extends State<UserScreen> {
                       leading: Icon(Icons.sports, color: Color(0xFFFF4500)),
                       title: Text('Sport'),
                       onTap: () {
-                        selectCategory('Sport');
+                        selectCategory('Sports');
                         Navigator.pop(context);
                       },
                     ),
