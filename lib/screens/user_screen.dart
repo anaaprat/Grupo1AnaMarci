@@ -99,13 +99,13 @@ class _UserScreenState extends State<UserScreen> {
     Color borderColor;
     switch (event.category) {
       case 'Music':
-        borderColor = Color(0xFFFFD700); // Amarillo
+        borderColor = Color(0xFFFFD700); 
         break;
       case 'Sport':
-        borderColor = Color(0xFFFF4500); // Naranja
+        borderColor = Color(0xFFFF4500); 
         break;
       case 'Technology':
-        borderColor = Color(0xFF4CAF50); // Verde
+        borderColor = Color(0xFF4CAF50); 
         break;
       default:
         borderColor = Colors.grey;
