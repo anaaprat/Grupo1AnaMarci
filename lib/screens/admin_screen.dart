@@ -26,7 +26,10 @@ class _AdminScreenState extends State<AdminScreen> {
   Future<void> _fetchUsers() async {
     final response = await http.get(
       Uri.parse('$baseUrl/users'),
-      headers: {'Authorization': 'Bearer ${widget.token}'},
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer ${widget.token}'
+      },
     );
 
     if (response.statusCode == 200) {
@@ -121,8 +124,37 @@ class _AdminScreenState extends State<AdminScreen> {
     }
   }
 
-  void _logout() {
-    Navigator.of(context).pushReplacementNamed('/login');
+  String _getRoleName(String role) {
+    return role == 'u' ? 'User' : 'Organizer';
+  }
+
+  Future<void> _confirmLogout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Wait'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false), // Cancel
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(true), // Confirm logout
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout == true) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    }
   }
 
   @override
@@ -132,11 +164,7 @@ class _AdminScreenState extends State<AdminScreen> {
         title: const Text('Admin Panel'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => LoginScreen()),
-            );
-          },
+          onPressed: _confirmLogout,
         ),
       ),
       body: ListView.builder(
@@ -227,7 +255,8 @@ class _AdminScreenState extends State<AdminScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Name: ${user['name']}'),
-                          Text('Role: ${user['role']}'),
+                          Text(
+                              'Role: ${_getRoleName(user['role'])}'), // Mostrar rol completo
                           Text(
                               'Status: ${user['actived'] ? 'Activated' : 'Deactivated'}'),
                         ],
@@ -249,7 +278,7 @@ class _AdminScreenState extends State<AdminScreen> {
                         );
 
                         if (result == true) {
-                          _fetchUsers();
+                          _fetchUsers(); // Refresca la lista de usuarios tras la actualización
                         }
                       },
                     ),

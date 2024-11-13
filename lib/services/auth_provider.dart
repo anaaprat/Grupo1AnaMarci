@@ -26,14 +26,16 @@ class AuthProvider with ChangeNotifier {
       print("Response from server: $response");
 
       if (response['success'] == true) {
+        // Si el inicio de sesión es exitoso
         _token = response['data']['token'];
         _role = response['data']['role'];
-        _email = email; // Guardamos el email del usuario al hacer login
+        _email = email;
         _errorMessage = null;
       } else {
+        // Si `success` es false, mostramos el mensaje de error específico
         _errorMessage = response['data']?['error'] ??
             response['message'] ??
-            'Invalid login credentials.';
+            'Unknown error occurred.';
       }
     } catch (e) {
       print("Error during login: $e");

@@ -1,47 +1,38 @@
 // event_model.dart
 
 class Event {
-  final int id;
-  final String title;
-  final DateTime startTime;
-  final String imageUrl;
-  final String category;
+  int id;
+  String title;
+  DateTime start_time;
+  String? image_url;
+  String category;
 
   Event({
     required this.id,
     required this.title,
-    required this.startTime,
-    required this.imageUrl,
+    required this.start_time,
+    this.image_url,
     required this.category,
   });
 
+  // Constructor principal desde JSON
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
       id: json['id'],
       title: json['title'],
-      startTime: DateTime.parse(json['start_time']),
-      imageUrl: json['image_url'],
+      start_time: DateTime.parse(json['start_time']),
+      image_url: json['image_url'],
       category: json['category'],
     );
   }
 
-  // Si necesitas otro constructor para diferentes formatos de JSON
-  factory Event.fromOrganizerJson(Map<String, dynamic> json) {
-    return Event(
-      id: json['id'],
-      title: json['name'], // Asumiendo que 'name' corresponde a 'title'
-      startTime: DateTime.parse(json['date']), // Asumiendo que 'date' corresponde a 'start_time'
-      imageUrl: json['image_url'] ?? '', // Manejar posibles valores nulos
-      category: json['category'] ?? 'General', // Valor por defecto si es necesario
-    );
-  }
-
+  // Método para convertir un objeto Event a JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'title': title,
-      'start_time': startTime.toIso8601String(),
-      'image_url': imageUrl,
+      'start_time': start_time.toIso8601String(),
+      'image_url': image_url,
       'category': category,
     };
   }

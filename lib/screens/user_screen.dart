@@ -1,263 +1,260 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import '../services/api_service.dart';
+import '../services/user_service.dart';
+import '../models/Event.dart';
+import '../models/Category.dart';
 import 'login_screen.dart';
-
-import '../widgets/music_event_card.dart';
-import '../widgets/sport_event_card.dart';
-import '../widgets/tech_event_card.dart';
 
 class UserScreen extends StatefulWidget {
   final String token;
   final String userEmail;
 
-  const UserScreen({super.key, required this.token, required this.userEmail});
+  const UserScreen({Key? key, required this.token, required this.userEmail})
+      : super(key: key);
 
   @override
   _UserScreenState createState() => _UserScreenState();
 }
 
 class _UserScreenState extends State<UserScreen> {
-  final ApiService apiService = ApiService();
-  Map<String, dynamic> _userData = {};
-  List<dynamic> _allEvents = [];
-  List<dynamic> _filteredEvents = [];
-  bool _isEventsLoading = true;
-  bool _isUserLoading = true;
+  late UserService userService;
+  String selectedCategory = 'All';
+  Map<int, Category> categoryMap = {};
+  List<Event> events = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
-    _fetchFutureEvents();
+    userService = UserService(token: widget.token);
+    loadCategoriesAndEvents();
   }
 
-  Future<void> _loadUserData() async {
-    setState(() {
-      _isUserLoading = true;
-    });
+  Future<void> loadCategoriesAndEvents() async {
+    try {
+      final categories = await userService.fetchCategories();
+      final eventsData = await userService.fetchEvents();
 
-    final userData =
-        await apiService.fetchUserData(widget.token, widget.userEmail);
-
-    setState(() {
-      _userData = userData;
-      _isUserLoading = false;
-    });
-
-    if (_userData.isEmpty) {
-      _showSnackBar('Error loading user data.');
+      setState(() {
+        categoryMap = {for (var category in categories) category.id: category};
+        events = eventsData;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
-  Future<void> _fetchFutureEvents() async {
-    final events = await apiService.fetchEvents(widget.token);
-    final now = DateTime.now();
+  List<Event> get filteredEvents {
+    final DateTime now = DateTime.now();
+    return events.where((event) {
+      final categoryMatches =
+          selectedCategory == 'All' || event.category == selectedCategory;
+      final isUpcoming = event.start_time.isAfter(now);
+      return categoryMatches && isUpcoming;
+    }).toList();
+  }
 
+  void selectCategory(String category) {
     setState(() {
-      _allEvents = (events ?? []).where((event) {
-        final eventDate = DateTime.parse(event['start_time']);
-        return eventDate.isAfter(now);
-      }).toList()
-        ..sort((a, b) => DateTime.parse(a['start_time'])
-            .compareTo(DateTime.parse(b['start_time'])));
-      _filteredEvents = _allEvents;
-      _isEventsLoading = false;
+      selectedCategory = category;
     });
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+  Future<void> _confirmLogout() async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Wait'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false), // Cancel
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(true), // Confirm logout
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
     );
+
+    if (shouldLogout == true) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    }
   }
 
-  void _confirmLogout() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Log out"),
-        content: const Text("Are you sure you want to log out?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text("Cancel", style: TextStyle(color: Colors.purple)),
+  Widget _buildEventCard(Event event) {
+    Color borderColor;
+    switch (event.category) {
+      case 'Music':
+        borderColor = Color(0xFFFFD700); // Yellow
+        break;
+      case 'Sport':
+        borderColor = Color(0xFFFF4500); // Orange
+        break;
+      case 'Technology':
+        borderColor = Color(0xFF4CAF50); // Green
+        break;
+      default:
+        borderColor = Colors.grey;
+    }
+
+    return Card(
+      elevation: 3,
+      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15.0),
+        side: BorderSide(color: borderColor, width: 2.0),
+      ),
+      child: ListTile(
+        leading: event.image_url != null && event.image_url!.isNotEmpty
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(8.0),
+                child: Image.network(
+                  event.image_url!,
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.cover,
+                ),
+              )
+            : Icon(Icons.event, color: Colors.grey, size: 50),
+        title: Text(
+          event.title,
+          style: TextStyle(
+            color: Colors.purple[800],
+            fontWeight: FontWeight.bold,
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _logout();
-            },
-            child: const Text("Log out", style: TextStyle(color: Colors.red)),
-          ),
-        ],
+        ),
+        subtitle: Text(
+          'Date: ${event.start_time}\nCategory: ${event.category}',
+          style: TextStyle(color: Colors.purple[600]),
+        ),
       ),
     );
-  }
-
-  void _logout() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-    );
-  }
-
-  Widget _buildEventCard(dynamic event) {
-    String category = event['category'];
-    String imageUrl = event['image_url'] ?? '';
-    String eventName = event['title'] ?? 'No title';
-    String eventDate = DateFormat('yyyy-MM-dd HH:mm')
-        .format(DateTime.parse(event['start_time']));
-
-    switch (category) {
-      case 'Music':
-        return MusicEventCard(
-          imageUrl: imageUrl,
-          eventName: eventName,
-          eventDate: eventDate,
-        );
-      case 'Sport':
-        return SportEventCard(
-          imageUrl: imageUrl,
-          eventName: eventName,
-          eventDate: eventDate,
-        );
-      case 'Tech':
-        return TechEventCard(
-          imageUrl: imageUrl,
-          eventName: eventName,
-          eventDate: eventDate,
-        );
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
-  void _filterEvents(String? category) {
-    setState(() {
-      if (category == null) {
-        _filteredEvents =
-            _allEvents; 
-      } else {
-        _filteredEvents =
-            _allEvents.where((event) => event['category'] == category).toList();
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.purple[800],
-        elevation: 0,
-        title: const Text(
-          'Eventify',
+        title: Text(
+          'Events',
           style: TextStyle(
-            fontFamily: 'Billabong',
-            fontSize: 28,
-            color: Colors.white,
+            color: Colors.purple[800],
+            fontWeight: FontWeight.w600,
           ),
         ),
+        backgroundColor: Colors.purple[50],
+        iconTheme: IconThemeData(color: Colors.purple[800]),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back),
           onPressed: _confirmLogout,
         ),
       ),
-      backgroundColor: Colors.purple[50],
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _isUserLoading
-                ? const Center(child: CircularProgressIndicator())
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Welcome, ${_userData['name'] ?? 'User'}',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.purple[900],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Email: ${_userData['email'] ?? 'Not available'}',
-                        style: TextStyle(color: Colors.purple[700]),
-                      ),
-                    ],
+      body: isLoading
+          ? Center(child: CircularProgressIndicator(color: Colors.purple[800]))
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Welcome, ${widget.userEmail}',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.purple[800],
+                    ),
                   ),
-            const SizedBox(height: 20),
-            const Text(
-              'Upcoming Events',
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.purple),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Upcoming Events',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.purple[600],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: filteredEvents.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No events available in this category.',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: filteredEvents.length,
+                            itemBuilder: (context, index) {
+                              return _buildEventCard(filteredEvents[index]);
+                            },
+                          ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 10),
-            _isEventsLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredEvents.isEmpty
-                    ? const Center(child: Text('No upcoming events available.'))
-                    : Expanded(
-                        child: ListView.builder(
-                          itemCount: _filteredEvents.length,
-                          itemBuilder: (context, index) {
-                            final event = _filteredEvents[index];
-                            return _buildEventCard(event);
-                          },
-                        ),
-                      ),
-          ],
-        ),
-      ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.purple,
-        child: const Icon(Icons.filter_list),
+        backgroundColor: Colors.purple[800],
+        child: Icon(Icons.filter_list, color: Colors.white),
         onPressed: () {
           showModalBottomSheet(
             context: context,
-            builder: (context) => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.music_note, color: Colors.yellow),
-                  title: const Text("Music"),
-                  onTap: () {
-                    _filterEvents("Music");
-                    Navigator.of(context).pop();
-                  },
+            builder: (context) {
+              return Container(
+                color: Colors.purple[50],
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading:
+                          Icon(Icons.all_inclusive, color: Colors.purple[800]),
+                      title: Text('All'),
+                      onTap: () {
+                        selectCategory('All');
+                        Navigator.pop(context);
+                      },
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.music_note, color: Color(0xFFFFD700)),
+                      title: Text('Music'),
+                      onTap: () {
+                        selectCategory('Music');
+                        Navigator.pop(context);
+                      },
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.sports, color: Color(0xFFFF4500)),
+                      title: Text('Sport'),
+                      onTap: () {
+                        selectCategory('Sport');
+                        Navigator.pop(context);
+                      },
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.computer, color: Color(0xFF4CAF50)),
+                      title: Text('Technology'),
+                      onTap: () {
+                        selectCategory('Technology');
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
                 ),
-                ListTile(
-                  leading:
-                      const Icon(Icons.sports_soccer, color: Colors.orange),
-                  title: const Text("Sport"),
-                  onTap: () {
-                    _filterEvents("Sport");
-                    Navigator.of(context).pop();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.computer, color: Colors.green),
-                  title: const Text("Technology"),
-                  onTap: () {
-                    _filterEvents("Tech");
-                    Navigator.of(context).pop();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.clear, color: Colors.black),
-                  title: const Text("Clear Filter"),
-                  onTap: () {
-                    _filterEvents(null);
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            ),
+              );
+            },
           );
         },
       ),

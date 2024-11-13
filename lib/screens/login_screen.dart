@@ -16,11 +16,9 @@ class LoginScreen extends StatelessWidget {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.login(_emailController.text, _passwordController.text);
 
-    if (authProvider.errorMessage != null) {
-      _showErrorSnackBar(context, authProvider.errorMessage!);
-    } else {
+    if (authProvider.errorMessage == null) {
       Widget nextScreen;
-      String userEmail = authProvider.email!; // Aseguramos que el email no sea null
+      String userEmail = authProvider.email!;
 
       switch (authProvider.role) {
         case 'a':
@@ -30,13 +28,16 @@ class LoginScreen extends StatelessWidget {
           nextScreen = OrganizerScreen(token: authProvider.token!);
           break;
         default:
-          nextScreen = UserScreen(token: authProvider.token!, userEmail: userEmail);
+          nextScreen =
+              UserScreen(token: authProvider.token!, userEmail: userEmail);
       }
 
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => nextScreen),
       );
+    } else {
+      _showErrorSnackBar(context, authProvider.errorMessage!);
     }
   }
 
@@ -54,77 +55,96 @@ class LoginScreen extends StatelessWidget {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      backgroundColor: Colors.grey[200],
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-              const Text(
-                'Eventify',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Billabong',
-                  color: Colors.purple,
+      backgroundColor: Colors.purple[50],
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo con imagen en lugar de texto
+                Image.asset(
+                  'assets/images/logo.png',
+                  height: 80, // Ajusta el tamaño de la imagen
                 ),
-              ),
-              const SizedBox(height: 30),
-              _buildTextField(
-                controller: _emailController,
-                label: 'Email',
-                icon: Icons.email,
-              ),
-              const SizedBox(height: 20),
-              _buildTextField(
-                controller: _passwordController,
-                label: 'Password',
-                icon: Icons.lock,
-                obscureText: true,
-              ),
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple[800],
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Login to your Account',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.purple,
                   ),
-                  onPressed:
-                      authProvider.isLoading ? null : () => _login(context),
-                  child: authProvider.isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Login',
-                          style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
+                const SizedBox(height: 30),
+
+                // Campo de Email
+                _buildTextField(
+                  controller: _emailController,
+                  label: 'Email',
+                  icon: Icons.email,
+                ),
+                const SizedBox(height: 20),
+
+                // Campo de Contraseña
+                _buildTextField(
+                  controller: _passwordController,
+                  label: 'Password',
+                  icon: Icons.lock,
+                  obscureText: true,
+                ),
+                const SizedBox(height: 30),
+
+                // Botón de Iniciar Sesión
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple[800],
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                    ),
+                    onPressed:
+                        authProvider.isLoading ? null : () => _login(context),
+                    child: authProvider.isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            'Sign in',
+                            style: TextStyle(fontSize: 18, color: Colors.white),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+
+                // Texto de redirección a registro
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("Don’t have an account? ",
+                        style: TextStyle(color: Colors.purple)),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const RegisterScreen()),
+                        );
+                      },
+                      child: const Text(
+                        'Sign up',
+                        style: TextStyle(
+                          color: Colors.purple,
+                          fontWeight: FontWeight.bold,
                         ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const RegisterScreen()),
-                    );
-                  },
-                  child: const Text(
-                    'Don’t have an account? Sign Up',
-                    style: TextStyle(
-                      color: Colors.purple,
-                      fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -145,10 +165,10 @@ class LoginScreen extends StatelessWidget {
         prefixIcon: Icon(icon, color: Colors.purple[800]),
         labelStyle: TextStyle(color: Colors.purple[800]),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15.0),
+          borderRadius: BorderRadius.circular(10.0),
         ),
         filled: true,
-        fillColor: Colors.purple[50],
+        fillColor: Colors.white,
       ),
     );
   }

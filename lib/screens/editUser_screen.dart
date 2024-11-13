@@ -20,29 +20,28 @@ class EditUserScreen extends StatefulWidget {
 }
 
 class _EditUserScreenState extends State<EditUserScreen> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _roleController = TextEditingController();
-  final ApiService apiService = ApiService();
+  late TextEditingController _nameController;
 
   @override
   void initState() {
     super.initState();
-    _nameController.text = widget.currentName;
-    _roleController.text = widget.currentRole;
+    _nameController = TextEditingController(text: widget.currentName);
   }
 
   Future<void> _updateUser() async {
-    final response = await apiService.updateUser(
+    final updatedName = _nameController.text;
+
+    final response = await ApiService().updateUser(
       widget.token,
       widget.userId,
-      {'name': _nameController.text, 'role': _roleController.text},
+      {
+        'name': updatedName,
+      },
     );
 
-    if (response['success']) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Usuario actualizado')),
-      );
-      Navigator.pop(context, true); // Devuelve "true" para indicar éxito
+    if (response['success'] == true) {
+      Navigator.of(context)
+          .pop(true); // Devuelve true si la actualización es exitosa
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${response['message']}')),
@@ -53,24 +52,19 @@ class _EditUserScreenState extends State<EditUserScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Editar Usuario')),
+      appBar: AppBar(title: Text('Edit User')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16),
         child: Column(
           children: [
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Nombre'),
+              decoration: InputDecoration(labelText: 'Name'),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _roleController,
-              decoration: const InputDecoration(labelText: 'Rol'),
-            ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _updateUser,
-              child: const Text('Guardar'),
+              child: Text('Update'),
             ),
           ],
         ),
