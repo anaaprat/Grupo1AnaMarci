@@ -46,14 +46,18 @@ class _UserScreenState extends State<UserScreen> {
     }
   }
 
+  // Ordena los eventos por fecha (ascendente)
   List<Event> get filteredEvents {
     final DateTime now = DateTime.now();
-    return events.where((event) {
-      final categoryMatches =
-          selectedCategory == 'All' || event.category == selectedCategory;
-      final isUpcoming = event.start_time.isAfter(now);
-      return categoryMatches && isUpcoming;
-    }).toList();
+    return events
+        .where((event) {
+          final categoryMatches =
+              selectedCategory == 'All' || event.category == selectedCategory;
+          final isUpcoming = event.start_time.isAfter(now);
+          return categoryMatches && isUpcoming;
+        })
+        .toList()
+      ..sort((a, b) => a.start_time.compareTo(b.start_time)); // Ordena por fecha
   }
 
   void selectCategory(String category) {
@@ -95,33 +99,33 @@ class _UserScreenState extends State<UserScreen> {
     Color borderColor;
     switch (event.category) {
       case 'Music':
-        borderColor = Color(0xFFFFD700); // Yellow
+        borderColor = Color(0xFFFFD700); // Amarillo
         break;
       case 'Sport':
-        borderColor = Color(0xFFFF4500); // Orange
+        borderColor = Color(0xFFFF4500); // Naranja
         break;
       case 'Technology':
-        borderColor = Color(0xFF4CAF50); // Green
+        borderColor = Color(0xFF4CAF50); // Verde
         break;
       default:
         borderColor = Colors.grey;
     }
 
     return Card(
-      elevation: 3,
+      elevation: 10,
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15.0),
-        side: BorderSide(color: borderColor, width: 2.0),
+        side: BorderSide(color: borderColor, width: 3.0),
       ),
       child: ListTile(
         leading: event.image_url != null && event.image_url!.isNotEmpty
             ? ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
+                borderRadius: BorderRadius.circular(12.0),
                 child: Image.network(
                   event.image_url!,
-                  width: 50,
-                  height: 50,
+                  width: 100,
+                  height: 100,
                   fit: BoxFit.cover,
                 ),
               )
@@ -131,6 +135,7 @@ class _UserScreenState extends State<UserScreen> {
           style: TextStyle(
             color: Colors.purple[800],
             fontWeight: FontWeight.bold,
+            fontSize: 16,
           ),
         ),
         subtitle: Text(
@@ -146,14 +151,15 @@ class _UserScreenState extends State<UserScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Events',
+          'Welcome, ${widget.userEmail}',
           style: TextStyle(
-            color: Colors.purple[800],
-            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
           ),
         ),
-        backgroundColor: Colors.purple[50],
-        iconTheme: IconThemeData(color: Colors.purple[800]),
+        backgroundColor: Colors.purple[800],
+        iconTheme: IconThemeData(color: Colors.white),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: _confirmLogout,
@@ -166,20 +172,29 @@ class _UserScreenState extends State<UserScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Welcome, ${widget.userEmail}',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.purple[800],
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: 20.0),
+                    decoration: BoxDecoration(
+                      color: Colors.purple[700],
+                      borderRadius: BorderRadius.circular(20.0),
+                    ),
+                    child: Text(
+                      'Find your next exciting event here!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 20),
                   Text(
                     'Upcoming Events',
                     style: TextStyle(
                       fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold,
                       color: Colors.purple[600],
                     ),
                   ),
@@ -214,7 +229,7 @@ class _UserScreenState extends State<UserScreen> {
             context: context,
             builder: (context) {
               return Container(
-                color: Colors.purple[50],
+                color: Colors.white,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
