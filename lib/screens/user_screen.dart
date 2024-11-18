@@ -94,6 +94,7 @@ class _UserScreenState extends State<UserScreen> {
       );
     }
   }
+  
 
   Widget _buildEventCard(Event event) {
     Color borderColor;
