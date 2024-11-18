@@ -1,5 +1,6 @@
 // event_model.dart
 
+
 class Event {
   int id;
   String title;
