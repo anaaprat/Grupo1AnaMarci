@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/user_service.dart';
 import '../models/Event.dart';
 import '../models/Category.dart';
-import 'login_screen.dart';
+import '../widgets/event_card.dart';
+import '../widgets/filter_modal.dart';
 
 class UserScreen extends StatefulWidget {
   final String token;
@@ -17,9 +18,10 @@ class UserScreen extends StatefulWidget {
 
 class _UserScreenState extends State<UserScreen> {
   late UserService userService;
-  String selectedCategory = 'All';
+  String currentSection = 'All Events';
   Map<int, Category> categoryMap = {};
   List<Event> events = [];
+  String selectedCategory = 'All';
   bool isLoading = true;
 
   @override
@@ -46,18 +48,24 @@ class _UserScreenState extends State<UserScreen> {
     }
   }
 
-  // Ordena los eventos por fecha (ascendente)
   List<Event> get filteredEvents {
-    final DateTime now = DateTime.now();
-    return events
-        .where((event) {
-          final categoryMatches =
-              selectedCategory == 'All' || event.category == selectedCategory;
-          final isUpcoming = event.start_time.isAfter(now);
-          return categoryMatches && isUpcoming;
-        })
-        .toList()
-      ..sort((a, b) => a.start_time.compareTo(b.start_time)); // Ordena por fecha
+    final now = DateTime.now();
+    List<Event> filtered =
+        events.where((event) => event.start_time.isAfter(now)).toList();
+
+    if (selectedCategory != 'All') {
+      filtered = filtered
+          .where((event) => event.category == selectedCategory)
+          .toList();
+    }
+
+    if (currentSection == 'All Events') {
+      filtered.sort((a, b) => b.start_time.compareTo(a.start_time));
+    } else if (currentSection == 'My Events') {
+      filtered.sort((a, b) => a.start_time.compareTo(b.start_time));
+    }
+
+    return filtered;
   }
 
   void selectCategory(String category) {
@@ -66,84 +74,137 @@ class _UserScreenState extends State<UserScreen> {
     });
   }
 
-  Future<void> _confirmLogout() async {
-    final shouldLogout = await showDialog<bool>(
+  void resetCategoryFilter() {
+    setState(() {
+      selectedCategory = 'All'; // Restablecer filtro
+    });
+  }
+
+  void showFilterModal() {
+    showModalBottomSheet(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Wait'),
-          content: const Text('Are you sure you want to logout?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false), // Cancel
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () =>
-                  Navigator.of(context).pop(true), // Confirm logout
-              child: const Text('Logout'),
-            ),
-          ],
-        );
+        return FilterModal(onCategorySelected: selectCategory);
       },
     );
-
-    if (shouldLogout == true) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => LoginScreen()),
-      );
-    }
   }
-  
 
-  Widget _buildEventCard(Event event) {
-    Color borderColor;
-    switch (event.category) {
-      case 'Music':
-        borderColor = Color(0xFFFFD700); 
-        break;
-      case 'Sport':
-        borderColor = Color(0xFFFF4500); 
-        break;
-      case 'Technology':
-        borderColor = Color(0xFF4CAF50); 
-        break;
-      default:
-        borderColor = Colors.grey;
-    }
+  void changeSection(String section) {
+    setState(() {
+      currentSection = section;
+      resetCategoryFilter(); // Restablecer el filtro al cambiar de sección
+    });
+    Navigator.pop(context); // Cerrar el Drawer
+  }
 
-    return Card(
-      elevation: 10,
-      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.0),
-        side: BorderSide(color: borderColor, width: 3.0),
-      ),
-      child: ListTile(
-        leading: event.image_url != null && event.image_url!.isNotEmpty
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(12.0),
-                child: Image.network(
-                  event.image_url!,
-                  width: 100,
-                  height: 100,
-                  fit: BoxFit.cover,
-                ),
-              )
-            : Icon(Icons.event, color: Colors.grey, size: 50),
-        title: Text(
-          event.title,
-          style: TextStyle(
-            color: Colors.purple[800],
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+  void showEventDetails(Event event) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-        ),
-        subtitle: Text(
-          'Date: ${event.start_time}\nCategory: ${event.category}',
-          style: TextStyle(color: Colors.purple[600]),
-        ),
-      ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Text(
+                    event.title,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.purple[800],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                if (event.image_url != null && event.image_url!.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(15.0),
+                    child: Image.network(
+                      event.image_url!,
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                const SizedBox(height: 15),
+                Divider(color: Colors.grey),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, color: Colors.purple[800]),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Date: ${event.start_time}',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(Icons.category, color: Colors.purple[800]),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Category: ${event.category}',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(Icons.location_on, color: Colors.purple[800]),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Location: ${event.location ?? "Not provided"}',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                if (event.description != null && event.description!.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Divider(color: Colors.grey),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Description:',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.purple[800],
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        event.description!,
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
+                const SizedBox(height: 20),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Close'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple[800],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -152,128 +213,73 @@ class _UserScreenState extends State<UserScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Welcome, ${widget.userEmail}',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          'Eventify',
+          style: TextStyle(color: Colors.white), // Texto en blanco
         ),
         backgroundColor: Colors.purple[800],
-        iconTheme: IconThemeData(color: Colors.white),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _confirmLogout,
+      ),
+      drawer: Drawer(
+        child: ListView(
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(color: Colors.purple[800]),
+              child: Text(
+                'Menu',
+                style: TextStyle(color: Colors.white, fontSize: 24),
+              ),
+            ),
+            ListTile(
+              title: Text('All Events'),
+              onTap: () => changeSection('All Events'),
+            ),
+            ListTile(
+              title: Text('My Events'),
+              onTap: () => changeSection('My Events'),
+            ),
+            ListTile(
+              title: Text('Report'),
+              onTap: () => changeSection('Report'),
+            ),
+          ],
         ),
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator(color: Colors.purple[800]))
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 20.0),
-                    decoration: BoxDecoration(
-                      color: Colors.purple[700],
-                      borderRadius: BorderRadius.circular(20.0),
-                    ),
-                    child: Text(
-                      'Find your next exciting event here!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Upcoming Events',
+          : currentSection == 'All Events' || currentSection == 'My Events'
+              ? ListView.builder(
+                  itemCount: filteredEvents.length,
+                  itemBuilder: (context, index) {
+                    return EventCard(
+                      event: filteredEvents[index],
+                      onSuspend: currentSection == 'My Events'
+                          ? () {
+                              // Logic to suspend registration
+                            }
+                          : null,
+                      onShowDetails: () {
+                        showEventDetails(filteredEvents[index]);
+                      },
+                      showButtons: currentSection == 'My Events',
+                    );
+                  },
+                )
+              : Center(
+                  child: Text(
+                    'Here goes the report functionality!',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.purple[600],
+                      color: Colors.grey[600],
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: filteredEvents.isEmpty
-                        ? Center(
-                            child: Text(
-                              'No events available in this category.',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: filteredEvents.length,
-                            itemBuilder: (context, index) {
-                              return _buildEventCard(filteredEvents[index]);
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.purple[800],
-        child: Icon(Icons.filter_list, color: Colors.white),
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            builder: (context) {
-              return Container(
-                color: Colors.white,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ListTile(
-                      leading:
-                          Icon(Icons.all_inclusive, color: Colors.purple[800]),
-                      title: Text('All'),
-                      onTap: () {
-                        selectCategory('All');
-                        Navigator.pop(context);
-                      },
-                    ),
-                    ListTile(
-                      leading: Icon(Icons.music_note, color: Color(0xFFFFD700)),
-                      title: Text('Music'),
-                      onTap: () {
-                        selectCategory('Music');
-                        Navigator.pop(context);
-                      },
-                    ),
-                    ListTile(
-                      leading: Icon(Icons.sports, color: Color(0xFFFF4500)),
-                      title: Text('Sport'),
-                      onTap: () {
-                        selectCategory('Sport');
-                        Navigator.pop(context);
-                      },
-                    ),
-                    ListTile(
-                      leading: Icon(Icons.computer, color: Color(0xFF4CAF50)),
-                      title: Text('Technology'),
-                      onTap: () {
-                        selectCategory('Technology');
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ],
                 ),
-              );
-            },
-          );
-        },
-      ),
+      floatingActionButton: currentSection != 'Report'
+          ? FloatingActionButton(
+              backgroundColor: Colors.purple[800],
+              child: Icon(Icons.filter_list, color: Colors.white),
+              onPressed: showFilterModal,
+            )
+          : null,
     );
   }
 }
