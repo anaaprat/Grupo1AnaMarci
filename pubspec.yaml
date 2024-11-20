@@ -13,7 +13,13 @@ dependencies:
   provider: ^6.0.5
   intl: ^0.17.0
   cupertino_icons: ^1.0.8
-  http: ^1.2.2  # Versión actualizada para compatibilidad
+  http: ^1.2.2  
+  pdf: ^3.10.0
+  open_file: ^3.2.1
+  path_provider: ^2.0.11
+  mailer: ^6.0.0
+  permission_handler: ^10.4.1
+
 
 dev_dependencies:
   flutter_test:

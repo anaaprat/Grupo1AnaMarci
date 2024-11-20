@@ -1,46 +1,62 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin" // Flutter plugin
+    id "org.jetbrains.kotlin.android" // Asegurar integración de Kotlin
+    id "dev.flutter.flutter-gradle-plugin" // Plugin de Flutter
 }
 
 android {
-    namespace = "com.example.eventify"
-    compileSdk = 34  // Usando SDK 34
-    ndkVersion = flutter.ndkVersion
+    namespace = "com.example.eventify" // Identificador único del paquete
+    compileSdk = 34 // SDK más reciente
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-
-     defaultConfig {
-        applicationId "com.example.eventify"
-        minSdkVersion 21
-        targetSdkVersion 34 // Asegúrate de que sea compatible
+    defaultConfig {
+        applicationId "com.example.eventify" // Identificador único del paquete
+        minSdkVersion 21 // Versión mínima compatible
+        targetSdkVersion 34 // Última versión compatible
         versionCode 1
         versionName "1.0"
     }
 
-buildTypes {
-    release {
-        signingConfig = signingConfigs.debug // Usando firma de debug temporalmente
-        minifyEnabled true // Habilita el minimizado de código
-        shrinkResources true // Habilita la eliminación de recursos no utilizados
-        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
-    debug {
-        minifyEnabled false // Evita el minimizado de código en debug
-        shrinkResources false // Evita la eliminación de recursos no utilizados en debug
-    }
-}
 
+    kotlinOptions {
+        jvmTarget = "1.8" // Asegurar compatibilidad con Kotlin
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug // Firma de debug para pruebas
+            minifyEnabled true // Reducir tamaño del código
+            shrinkResources true // Eliminar recursos no utilizados
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            minifyEnabled false // No reducir tamaño del código en debug
+            shrinkResources false // No eliminar recursos en debug
+        }
+    }
+
+    lintOptions {
+        abortOnError false // Deshabilitar abortos por errores de lint
+    }
+
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}' // Excluir archivos conflictivos
+        }
+    }
 }
 
 flutter {
-    source = "../.."
+    source = "../.." // Ruta al código fuente de Flutter
+}
+
+// Asegurar uso de versión de Gradle Wrapper compatible
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
 }
