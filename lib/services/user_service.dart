@@ -2,14 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../api_constants.dart';
 import '../models/Event.dart'; // Importa el modelo de eventos
-import '../models/Category.dart'; // Importa el modelo de categorías
+import '../models/Category.dart'; // Importa el modelo de categoría
 
 class UserService {
   final String token;
 
   UserService({required this.token});
 
-  // Método para obtener categorías y devolver una lista de objetos `Category`
   Future<List<Category>> fetchCategories() async {
     final response = await http.get(
       Uri.parse('$baseUrl/categories'),
@@ -27,7 +26,6 @@ class UserService {
     }
   }
 
-  // Método para obtener eventos y devolver una lista de objetos `Event`
   Future<List<Event>> fetchEvents() async {
     final response = await http.get(
       Uri.parse('$baseUrl/events'),
@@ -41,49 +39,111 @@ class UserService {
       final data = json.decode(response.body);
       return List<Event>.from(data['data'].map((json) => Event.fromJson(json)));
     } else {
-      print("Failed to load events. Status code: ${response.statusCode}");
-      print("Response body: ${response.body}");
       throw Exception('Failed to load events');
     }
   }
 
-  Future<Map<String, dynamic>> registerEvent({
-    required int userId,
-    required int eventId,
-    required DateTime registeredAt,
-  }) async {
-    final url = Uri.parse('$baseUrl/registerEvent');
+  Future<Map<String, dynamic>?> fetchUserData(
+      String token, String userEmail) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'user_id': userId,
-        'event_id': eventId,
-        'registered_at': registeredAt.toIso8601String(),
-      }),
-    );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      print("Failed to register event. Status code: ${response.statusCode}");
-      print("Response body: ${response.body}");
-      throw Exception('Failed to register event');
+        if (data['success'] == true && data['data'] is List) {
+          final List users = data['data'];
+
+          final user = users.firstWhere(
+            (u) =>
+                u['email']?.trim().toLowerCase() ==
+                userEmail.trim().toLowerCase(),
+            orElse: () => null,
+          );
+
+          if (user != null) {
+            return user;
+          } else {
+            return null; // Retorna null si no se encuentra
+          }
+        } else {
+          throw Exception('Estructura inesperada en la respuesta.');
+        }
+      } else {
+        throw Exception(
+            'Error al obtener datos de usuarios. Código: ${response.statusCode}');
+      }
+    } catch (e) {
+      return null; 
     }
   }
 
-  Future<Map<String, dynamic>> unregisterEvent({
-    required int userId,
-    required int eventId,
-  }) async {
-    final url = Uri.parse('$baseUrl/unregisterEvent');
+  Future<Map<String, dynamic>> fetchEventsByUser(int userId) async {
+    final String url = "$baseUrl/eventsByUser";
+    try {
+      final headers = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
 
+      final response = await http.get(
+        Uri.parse('$url?id=$userId'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'data': data['data'],
+          'message': data['message'],
+        };
+      } else {
+        final error = json.decode(response.body);
+        return {
+          'success': false,
+          'message': error['message'] ?? 'Error desconocido',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Ocurrió un error: $e',
+      };
+    }
+  }
+
+  Future<void> registerEvent(int userId, int eventId) async {
     final response = await http.post(
-      url,
+      Uri.parse('$baseUrl/registerEvent'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'user_id': userId,
+        'event_id': eventId,
+        'registered_at': DateTime.now().toIso8601String(),
+      }),
+    );
+
+    final data = jsonDecode(response.body);
+    if (response.statusCode == 200 && data['success'] == true) {
+      // Operación exitosa
+    } else {
+      throw Exception('Error: ${data['message'] ?? 'Unexpected error'}');
+    }
+  }
+
+  Future<void> unregisterEvent(int userId, int eventId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/unregisterEvent'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
@@ -94,12 +154,11 @@ class UserService {
       }),
     );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+    final data = jsonDecode(response.body);
+    if (response.statusCode == 200 && data['success'] == true) {
+      // Operación exitosa
     } else {
-      print("Failed to unregister event. Status code: ${response.statusCode}");
-      print("Response body: ${response.body}");
-      throw Exception('Failed to unregister event');
+      throw Exception('Error: ${data['message'] ?? 'Unexpected error'}');
     }
   }
 }

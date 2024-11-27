@@ -5,14 +5,16 @@ class EventCard extends StatelessWidget {
   final Event event;
   final Function()? onSuspend;
   final Function()? onShowDetails;
-  final bool showButtons;
+  final Function()? onRegister; // Acción para registrar
+  final String contextSection; // Indica si estamos en 'All Events' o 'My Events'
 
   const EventCard({
     Key? key,
     required this.event,
     this.onSuspend,
     this.onShowDetails,
-    this.showButtons = false,
+    this.onRegister,
+    required this.contextSection,
   }) : super(key: key);
 
   Color _getBorderColor(String category) {
@@ -65,10 +67,10 @@ class EventCard extends StatelessWidget {
             ),
             onTap: onShowDetails,
           ),
-          if (showButtons)
-            ButtonBar(
-              alignment: MainAxisAlignment.end,
-              children: [
+          ButtonBar(
+            alignment: MainAxisAlignment.end,
+            children: [
+              if (contextSection == 'My Events')
                 ElevatedButton(
                   onPressed: onSuspend,
                   child: Text('Suspend Registration'),
@@ -76,15 +78,23 @@ class EventCard extends StatelessWidget {
                     backgroundColor: Colors.red[400],
                   ),
                 ),
+              if (contextSection == 'All Events')
                 ElevatedButton(
-                  onPressed: onShowDetails,
-                  child: Text('Show Details'),
+                  onPressed: onRegister,
+                  child: Text('Register'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[400],
+                    backgroundColor: Colors.green[400],
                   ),
                 ),
-              ],
-            ),
+              ElevatedButton(
+                onPressed: onShowDetails,
+                child: Text('Show Details'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue[400],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

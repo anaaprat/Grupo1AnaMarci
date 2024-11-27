@@ -19,10 +19,16 @@ class UserScreen extends StatefulWidget {
 class _UserScreenState extends State<UserScreen> {
   late UserService userService;
   late EmailService emailService;
+
+  String selectedCategory = 'All';
   String currentSection = 'All Events';
   Map<int, Category> categoryMap = {};
+
   List<Event> events = [];
-  String selectedCategory = 'All';
+  Map<String, dynamic> eventsByUser = {};
+  List<Event> userRegisteredEvents = [];
+  int? userId;
+
   bool isLoading = true;
 
   // Variables para la pestaña "Report"
@@ -38,7 +44,6 @@ class _UserScreenState extends State<UserScreen> {
   void initState() {
     super.initState();
     userService = UserService(token: widget.token);
-    loadCategoriesAndEvents();
     emailService = EmailService(
       smtpEmail: 'anaprat26@gmail.com',
       smtpPassword: 'mkxv hldp bxbd aneb',
@@ -47,36 +52,61 @@ class _UserScreenState extends State<UserScreen> {
 
   Future<void> loadCategoriesAndEvents() async {
     try {
+      final userData =
+          await userService.fetchUserData(widget.token, widget.userEmail);
+
+      if (userData == null || !userData.containsKey('id')) {
+        throw Exception('No se encontró el usuario o falta el ID.');
+      }
+
+      userId = userData['id'];
+
       final categories = await userService.fetchCategories();
-      final eventsData = await userService.fetchEvents();
+      final userRegisteredEvents = await userService.fetchEventsByUser(userId!);
+
+      if (!mounted) return;
 
       setState(() {
         categoryMap = {for (var category in categories) category.id: category};
-        events = eventsData;
+        eventsByUser = userRegisteredEvents;
         isLoading = false;
       });
     } catch (e) {
       setState(() {
         isLoading = false;
       });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al cargar datos: ${e.toString()}')),
+      );
     }
   }
 
   List<Event> get filteredEvents {
     final now = DateTime.now();
-    List<Event> filtered =
-        events.where((event) => event.start_time.isAfter(now)).toList();
+    List<Event> filtered;
 
+    if (currentSection == 'My Events') {
+      // Eventos en los que el usuario está registrado
+      filtered = userRegisteredEvents
+          .where((event) => event.start_time.isAfter(now))
+          .toList();
+    } else {
+      // Eventos en los que el usuario NO está registrado
+      final registeredIds =
+          userRegisteredEvents.map((event) => event.id).toSet();
+      filtered = events
+          .where((event) =>
+              event.start_time.isAfter(now) &&
+              !registeredIds.contains(event.id))
+          .toList();
+    }
+
+    // Filtrar por categoría seleccionada
     if (selectedCategory != 'All') {
       filtered = filtered
           .where((event) => event.category == selectedCategory)
           .toList();
-    }
-
-    if (currentSection == 'All Events') {
-      filtered.sort((a, b) => b.start_time.compareTo(a.start_time));
-    } else if (currentSection == 'My Events') {
-      filtered.sort((a, b) => a.start_time.compareTo(b.start_time));
     }
 
     return filtered;
@@ -270,21 +300,23 @@ class _UserScreenState extends State<UserScreen> {
             ),
             ListTile(
               title: Text('All Events'),
-              onTap: () {
+              onTap: () async {
                 setState(() {
                   currentSection = 'All Events';
                   selectedCategory = 'All';
                 });
+                await loadCategoriesAndEvents(); // Recargar eventos
                 Navigator.pop(context);
               },
             ),
             ListTile(
               title: Text('My Events'),
-              onTap: () {
+              onTap: () async {
                 setState(() {
                   currentSection = 'My Events';
                   selectedCategory = 'All';
                 });
+                await loadCategoriesAndEvents(); // Recargar eventos
                 Navigator.pop(context);
               },
             ),
@@ -415,9 +447,8 @@ class _UserScreenState extends State<UserScreen> {
                                 await emailService.generateFilteredPdf(
                                   context,
                                   filteredEvents,
-                                  openAfterGeneration:
-                                      true, // Abrir el archivo tras generarlo
-                                  saveToDownloads: true, // Guardar en Descargas
+                                  openAfterGeneration: true,
+                                  saveToDownloads: true,
                                 );
                               },
                               style: ElevatedButton.styleFrom(
@@ -445,18 +476,50 @@ class _UserScreenState extends State<UserScreen> {
                   ? ListView.builder(
                       itemCount: filteredEvents.length,
                       itemBuilder: (context, index) {
+                        final event = filteredEvents[index];
+
                         return EventCard(
-                          event: filteredEvents[index],
+                          event: event,
+                          contextSection: currentSection,
+                          onRegister: currentSection == 'All Events'
+                              ? () async {
+                                  try {
+                                    await userService.registerEvent(
+                                        userId!, event.id);
+                                    setState(() {
+                                      userRegisteredEvents.add(event);
+                                      events.remove(event);
+                                    });
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(
+                                              'Error al registrar el evento: $e')),
+                                    );
+                                  }
+                                }
+                              : null,
                           onSuspend: currentSection == 'My Events'
-                              ? () {
-                                  // Aqui pa darse de baja de evento
+                              ? () async {
+                                  try {
+                                    await userService.unregisterEvent(
+                                        userId!, event.id);
+                                    setState(() {
+                                      events.add(event);
+                                      userRegisteredEvents.remove(event);
+                                    });
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(
+                                              'Error al desregistrar el evento: $e')),
+                                    );
+                                  }
                                 }
                               : null,
                           onShowDetails: () {
-                            showEventDetails(
-                                filteredEvents[index]); // Mostrar detalles
+                            showEventDetails(event);
                           },
-                          showButtons: currentSection == 'My Events',
                         );
                       },
                     )

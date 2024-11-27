@@ -7,13 +7,12 @@ class AuthProvider with ChangeNotifier {
   String? _errorMessage;
   String? _token;
   String? _role;
-  String? _email; // Añadimos esta variable para almacenar el email del usuario
-
+  String? _email;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String? get token => _token;
   String? get role => _role;
-  String? get email => _email; // Añadimos el getter para email
+  String? get email => _email;
 
   Future<void> login(String email, String password) async {
     _isLoading = true;

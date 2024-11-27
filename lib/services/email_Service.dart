@@ -23,7 +23,7 @@ class EmailService {
               'No hay eventos que coincidan con los filtros seleccionados.'),
         ),
       );
-      return null; // Retorna null si no hay eventos
+      return null; 
     }
 
     final pdf = pw.Document();
