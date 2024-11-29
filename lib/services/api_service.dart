@@ -1,9 +1,31 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/user.dart';
 import '../api_constants.dart';
 
 class ApiService {
+  // Login de usuario
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/login'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      );
+      return _processResponse(response);
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'An error occurred during the login request'
+      };
+    }
+  }
+
   // Registro de usuario
   Future<Map<String, dynamic>> registerUser(String name, String email,
       String password, String cPassword, String role) async {
@@ -24,146 +46,10 @@ class ApiService {
       );
       return _processResponse(response);
     } catch (e) {
-      print("Error al realizar la solicitud de registro: $e");
       return {
         'success': false,
-        'message': 'Error al realizar la solicitud de registro.'
+        'message': 'An error occurred during the register request'
       };
-    }
-  }
-
-  // Login de usuario
-  Future<Map<String, dynamic>> loginUser(String email, String password) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/login'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      );
-      return _processResponse(response);
-    } catch (e) {
-      print("Error al realizar la solicitud de login: $e");
-      return {
-        'success': false,
-        'message': 'Error al realizar la solicitud de login.'
-      };
-    }
-  }
-
-  // Cambiar estado del usuario (activar/desactivar)
-  Future<Map<String, dynamic>> changeUserStatus(
-      String token, int userId, bool isActive) async {
-    final endpoint = isActive ? '/activate' : '/deactivate';
-    final response = await http.post(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({'id': userId}),
-    );
-    return _processResponse(response);
-  }
-
-  // Obtener todos los usuarios
-  Future<List<User>?> getUsers(String token) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/users'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-    );
-    if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body)['data'];
-      return data.map((userJson) => User.fromJson(userJson)).toList();
-    } else {
-      print('Error al obtener usuarios: ${response.statusCode}');
-      return null;
-    }
-  }
-
-  // Eliminar usuario
-  Future<Map<String, dynamic>> deleteUser(String token, int userId) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/deleteUser'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({'id': userId}),
-    );
-    return _processResponse(response);
-  }
-
-  // Editar usuario
-  Future<Map<String, dynamic>> updateUser(
-      String token, int userId, Map<String, dynamic> updatedData) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/updateUser'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({
-        'id': userId,
-        ...updatedData,
-      }),
-    );
-    return _processResponse(response);
-  }
-
-  // Obtener un usuario específico usando su email
-  Future<Map<String, dynamic>> fetchUserData(
-      String token, String userEmail) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/users'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        if (data['success'] == true && data['data'] is List) {
-          final List users = data['data'];
-          final user = users.firstWhere(
-            (u) => u['email'] == userEmail,
-            orElse: () => null,
-          );
-
-          if (user != null) {
-            return user;
-          } else {
-            print('Usuario no encontrado en la lista.');
-            return {};
-          }
-        } else {
-          print('Formato inesperado en la respuesta.');
-          return {};
-        }
-      } else {
-        print(
-            'Error al obtener datos de usuarios. Código: ${response.statusCode}');
-        return {};
-      }
-    } catch (e) {
-      print("Error al realizar la solicitud de usuario: $e");
-      return {};
     }
   }
 
@@ -175,15 +61,14 @@ class ApiService {
       } else {
         return {
           'success': false,
-          'message': decodedResponse['message'] ?? 'Error en la solicitud.',
+          'data': decodedResponse['data'] ?? 'Error',
           'statusCode': response.statusCode,
         };
       }
     } catch (e) {
-      print("Error al procesar la respuesta: $e");
       return {
         'success': false,
-        'message': 'Error al procesar la respuesta.',
+        'message': 'Error while processing the response',
         'statusCode': response.statusCode,
       };
     }

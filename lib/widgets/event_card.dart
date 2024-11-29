@@ -5,8 +5,8 @@ class EventCard extends StatelessWidget {
   final Event event;
   final Function()? onSuspend;
   final Function()? onShowDetails;
-  final Function()? onRegister; // Acción para registrar
-  final String contextSection; // Indica si estamos en 'All Events' o 'My Events'
+  final Function()? onRegister; 
+  final String contextSection; 
 
   const EventCard({
     Key? key,
@@ -20,11 +20,11 @@ class EventCard extends StatelessWidget {
   Color _getBorderColor(String category) {
     switch (category) {
       case 'Music':
-        return Color(0xFFFFD700); // Dorado
+        return Color(0xFFFFD700); 
       case 'Sport':
-        return Color(0xFFFF4500); // Naranja
+        return Color(0xFFFF4500); 
       case 'Technology':
-        return Color(0xFF4CAF50); // Verde
+        return Color(0xFF4CAF50); 
       default:
         return Colors.grey;
     }

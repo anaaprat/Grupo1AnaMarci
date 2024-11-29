@@ -1,9 +1,8 @@
+import 'package:eventify/services/admin_service.dart';
 import 'package:eventify/screens/editUser_screen.dart';
 import 'package:eventify/screens/login_screen.dart';
+import 'package:eventify/widgets/user_card.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../api_constants.dart';
 
 class AdminScreen extends StatefulWidget {
   final String token;
@@ -16,144 +15,96 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen> {
   List<dynamic> _users = [];
+  late AdminService adminService;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchUsers();
+    adminService = AdminService(token: widget.token);
+    _loadUsers();
   }
 
-  Future<void> _fetchUsers() async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/users'),
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer ${widget.token}'
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+  Future<void> _loadUsers() async {
+    setState(() => _isLoading = true);
+    try {
+      final users = await adminService.getUsers();
       setState(() {
-        _users = data['data'].map((userJson) {
-          userJson['actived'] = userJson['actived'] == 1;
-          return userJson;
-        }).toList();
+        _users = users;
+        _isLoading = false;
       });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load users.')),
-      );
-    }
-  }
-
-  Future<void> _changeUserStatus(int userId, bool isActivated) async {
-    final endpoint = isActivated ? '/activate' : '/deactivate';
-    final actionMessage = isActivated ? 'activated' : 'deactivated';
-
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl$endpoint'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.token}',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({'id': userId}),
-      );
-
-      final responseBody = jsonDecode(response.body);
-
-      if (responseBody['success']) {
-        setState(() {
-          final userIndex = _users.indexWhere((user) => user['id'] == userId);
-          if (userIndex != -1) {
-            _users[userIndex]['actived'] = isActivated;
-          }
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('User $actionMessage successfully.')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${responseBody['message']}')),
-        );
-      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Exception: ${e.toString()}')),
-      );
+      _showSnackBar('Failed to load users: $e');
+      setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _deleteUser(int userId) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/deleteUser'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.token}',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({'id': userId}),
-      );
-
-      final responseBody = jsonDecode(response.body);
-
-      if (response.statusCode == 200 && responseBody['success']) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User deleted.')),
-        );
-        setState(() {
-          _users.removeWhere((user) => user['id'] == userId);
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Error: ${responseBody['message'] ?? 'Could not delete user.'}',
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Exception: ${e.toString()}')),
-      );
-    }
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
-  String _getRoleName(String role) {
-    return role == 'u' ? 'User' : 'Organizer';
-  }
-
-  Future<void> _confirmLogout() async {
-    final shouldLogout = await showDialog<bool>(
+  Future<bool?> _showConfirmationDialog(String title, String content) async {
+    return showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Wait'),
-          content: const Text('Are you sure you want to logout?'),
+          title: Text(title),
+          content: Text(content),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false), // Cancel
+              onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () =>
-                  Navigator.of(context).pop(true), // Confirm logout
-              child: const Text('Logout'),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Accept'),
             ),
           ],
         );
       },
     );
+  }
+
+  Widget _buildDismissBackground(bool isActivate, bool userActiveStatus) {
+    final actionColor = isActivate
+        ? (userActiveStatus ? Colors.orange : Colors.green)
+        : Colors.red;
+    final actionIcon = isActivate
+        ? (userActiveStatus ? Icons.lock : Icons.lock_open)
+        : Icons.delete;
+    final actionText =
+        isActivate ? (userActiveStatus ? 'Deactivate' : 'Activate') : 'Delete';
+
+    return Container(
+      color: actionColor,
+      alignment: isActivate ? Alignment.centerLeft : Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        mainAxisAlignment:
+            isActivate ? MainAxisAlignment.start : MainAxisAlignment.end,
+        children: [
+          Icon(actionIcon, color: Colors.white),
+          const SizedBox(width: 8),
+          Text(actionText, style: const TextStyle(color: Colors.white)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmLogout() async {
+    final shouldLogout = await _showConfirmationDialog(
+      'Wait',
+      'Are you sure you want to logout?',
+    );
 
     if (shouldLogout == true) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => LoginScreen()),
-      );
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+      }
     }
   }
 
@@ -164,131 +115,93 @@ class _AdminScreenState extends State<AdminScreen> {
         title: const Text('Admin Panel'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: _confirmLogout,
+          onPressed: _confirmLogout, 
         ),
       ),
-      body: ListView.builder(
-        itemCount: _users.length,
-        itemBuilder: (context, index) {
-          final user = _users[index];
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: _users.length,
+              itemBuilder: (context, index) {
+                final user = _users[index];
 
-          return Dismissible(
-            key: ValueKey(user['id']),
-            background: Container(
-              color: user['actived'] ? Colors.orange : Colors.green,
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Icon(
-                    user['actived'] ? Icons.lock : Icons.lock_open,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    user['actived'] ? 'Deactivate' : 'Activate',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-            secondaryBackground: Container(
-              color: Colors.red,
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: const [
-                  Icon(Icons.delete, color: Colors.white),
-                  SizedBox(width: 8),
-                  Text('Delete', style: TextStyle(color: Colors.white)),
-                ],
-              ),
-            ),
-            confirmDismiss: (direction) async {
-              if (direction == DismissDirection.endToStart) {
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: const Text('Confirm Deletion'),
-                      content: const Text(
-                          'Are you sure you want to delete this user?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(true),
-                          child: const Text('Delete'),
-                        ),
-                      ],
-                    );
-                  },
-                );
-                return confirmed ?? false;
-              } else if (direction == DismissDirection.startToEnd) {
-                await _changeUserStatus(user['id'], !user['actived']);
-                return false;
-              }
-              return false;
-            },
-            onDismissed: (direction) async {
-              if (direction == DismissDirection.endToStart) {
-                await _deleteUser(user['id']);
-              }
-            },
-            child: Card(
-              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundImage: NetworkImage(user['imageUrl'] ??
-                          'https://via.placeholder.com/150'),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Name: ${user['name']}'),
-                          Text(
-                              'Role: ${_getRoleName(user['role'])}'), // Mostrar rol completo
-                          Text(
-                              'Status: ${user['actived'] ? 'Activated' : 'Deactivated'}'),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditUserScreen(
-                              token: widget.token,
-                              userId: user['id'],
-                              currentName: user['name'],
-                              currentRole: user['role'],
-                            ),
-                          ),
-                        );
+                return Dismissible(
+                  key: ValueKey(user.id),
+                  background: _buildDismissBackground(true, user.actived),
+                  secondaryBackground:
+                      _buildDismissBackground(false, user.actived),
+                  confirmDismiss: (direction) async {
+                    if (direction == DismissDirection.endToStart) {
+                      final confirmation = await _showConfirmationDialog(
+                        'Confirm Deletion',
+                        'Are you sure you want to delete ${user.name}?',
+                      );
 
-                        if (result == true) {
-                          _fetchUsers(); // Refresca la lista de usuarios tras la actualización
+                      if (confirmation == true) {
+                        try {
+                          final success =
+                              await adminService.deleteUser(user.id);
+
+                          if (success) {
+                            setState(() {
+                              _users.removeAt(
+                                  index); 
+                            });
+                            _showSnackBar(
+                                'User ${user.name} deleted successfully');
+                          }
+                        } catch (e) {
+                          _showSnackBar(e.toString());
                         }
-                      },
-                    ),
-                  ],
-                ),
-              ),
+                      }
+                      return confirmation ?? false;
+                    } else if (direction == DismissDirection.startToEnd) {
+                      final confirmation = await _showConfirmationDialog(
+                        user.actived ? 'Deactivate' : 'Activate',
+                        'Are you sure you want to ${user.actived ? 'deactivate' : 'activate'} ${user.name}?',
+                      );
+
+                      if (confirmation == true) {
+                        try {
+                          if (user.actived) {
+                            await adminService.deactivateUser(user.id);
+                          } else {
+                            await adminService.activateUser(user.id);
+                          }
+                          setState(() {
+                            user.actived = !user.actived;
+                          });
+                          _showSnackBar(
+                              'User ${user.actived ? 'activated' : 'deactivated'} successfully');
+                        } catch (e) {
+                          _showSnackBar('Failed to update user status: $e');
+                        }
+                      }
+                      return false;
+                    }
+                    return false;
+                  },
+                  child: UserCard(
+                    user: user,
+                    onEdit: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditUserScreen(
+                            token: widget.token,
+                            userId: user.id,
+                            currentName: user.name,
+                          ),
+                        ),
+                      );
+                      if (result == true) {
+                        await _loadUsers();
+                      }
+                    },
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 }

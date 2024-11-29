@@ -20,24 +20,19 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await apiService.loginUser(email, password);
-
-      print("Response from server: $response");
+      final response = await apiService.login(email, password);
 
       if (response['success'] == true) {
-        // Si el inicio de sesión es exitoso
         _token = response['data']['token'];
         _role = response['data']['role'];
         _email = email;
         _errorMessage = null;
       } else {
-        // Si `success` es false, mostramos el mensaje de error específico
         _errorMessage = response['data']?['error'] ??
             response['message'] ??
             'Unknown error occurred.';
       }
     } catch (e) {
-      print("Error during login: $e");
       _errorMessage = 'An error occurred while logging in.';
     } finally {
       _isLoading = false;

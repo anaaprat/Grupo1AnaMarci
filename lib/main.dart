@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/login_screen.dart';
-import 'services/auth_provider.dart';
+import 'providers/auth_provider.dart';
 
 void main() {
   runApp(EventifyApp());
@@ -12,8 +12,7 @@ class EventifyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-            create: (_) => AuthProvider()), // Añadir AuthProvider aquí
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

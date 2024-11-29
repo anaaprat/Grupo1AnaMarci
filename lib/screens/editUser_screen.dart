@@ -1,18 +1,16 @@
+import 'package:eventify/services/admin_service.dart';
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
 
 class EditUserScreen extends StatefulWidget {
   final String token;
   final int userId;
   final String currentName;
-  final String currentRole;
 
   const EditUserScreen({
     super.key,
     required this.token,
     required this.userId,
     required this.currentName,
-    required this.currentRole,
   });
 
   @override
@@ -21,30 +19,41 @@ class EditUserScreen extends StatefulWidget {
 
 class _EditUserScreenState extends State<EditUserScreen> {
   late TextEditingController _nameController;
+  late AdminService adminService;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.currentName);
+    adminService = AdminService(token: widget.token); 
+    _nameController = TextEditingController(
+        text: widget.currentName); 
   }
 
-  Future<void> _updateUser() async {
+  Future<void> _onUpdatePressed() async {
     final updatedName = _nameController.text;
 
-    final response = await ApiService().updateUser(
-      widget.token,
-      widget.userId,
-      {
-        'name': updatedName,
-      },
-    );
-
-    if (response['success'] == true) {
-      Navigator.of(context)
-          .pop(true); // Devuelve true si la actualización es exitosa
-    } else {
+    if (updatedName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${response['message']}')),
+        const SnackBar(content: Text('Name cannot be empty')),
+      );
+      return;
+    }
+
+    try {
+      final response =
+          await adminService.updateUser(widget.userId, updatedName);
+
+      if (response['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User updated successfully')),
+        );
+        Navigator.of(context).pop(true); 
+      } else {
+        throw Exception(response['message'] ?? 'Failed to update user.');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
@@ -52,19 +61,19 @@ class _EditUserScreenState extends State<EditUserScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Edit User')),
+      appBar: AppBar(title: const Text('Edit User')),
       body: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
               controller: _nameController,
-              decoration: InputDecoration(labelText: 'Name'),
+              decoration: const InputDecoration(labelText: 'Name'),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _updateUser,
-              child: Text('Update'),
+              onPressed: _onUpdatePressed, 
+              child: const Text('Update'),
             ),
           ],
         ),

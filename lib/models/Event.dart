@@ -2,13 +2,13 @@ class Event {
   final int id;
   final String title;
   final DateTime start_time;
-  final String? image_url; // Campo opcional para la URL de la imagen
+  final String? image_url; 
   final String category;
-  final String? description; // Campo opcional para la descripción
-  final String? location; // Campo opcional para la ubicación
-  final DateTime? end_time; // Campo opcional para la hora de finalización
-  final int? organizer_id; // Campo opcional para el ID del organizador
-  final int? category_id; // Campo opcional para el ID de la categoría
+  final String? description;
+  final String? location; 
+  final DateTime? end_time; 
+  final int? organizer_id; 
+  final int? category_id; 
 
   Event({
     required this.id,
@@ -23,23 +23,21 @@ class Event {
     this.category_id,
   });
 
-  // Constructor desde JSON
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
-      id: json['id'] ?? 0, // Valor por defecto si falta el ID
-      title: json['title'] ?? 'Untitled Event', // Valor por defecto para el título
+      id: json['id'] ?? 0,
+      title: json['title'] ?? 'Untitled Event', 
       start_time: DateTime.tryParse(json['start_time'] ?? '') ?? DateTime.now(),
-      image_url: json['image_url'], // Puede ser null
-      category: json['category'] ?? 'Uncategorized', // Categoría por defecto
-      description: json['description'], // Puede ser null
-      location: json['location'], // Puede ser null
-      end_time: DateTime.tryParse(json['end_time'] ?? ''), // Puede ser null
-      organizer_id: json['organizer_id'], // Puede ser null
-      category_id: json['category_id'], // Puede ser null
+      image_url: json['image_url'], 
+      category: json['category'] ?? 'Uncategorized', 
+      description: json['description'], 
+      location: json['location'], 
+      end_time: DateTime.tryParse(json['end_time'] ?? ''), 
+      organizer_id: json['organizer_id'], 
+      category_id: json['category_id'], 
     );
   }
 
-  // Método para convertir un objeto Event a JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,

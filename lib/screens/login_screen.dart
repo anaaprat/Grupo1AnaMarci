@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/auth_provider.dart';
+import '../providers/auth_provider.dart';
 import 'admin_screen.dart';
 import 'user_screen.dart';
 import 'organizer_screen.dart';
@@ -63,10 +63,9 @@ class LoginScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo con imagen en lugar de texto
                 Image.asset(
                   'assets/images/logo.png',
-                  height: 80, // Ajusta el tamaño de la imagen
+                  height: 80, 
                 ),
                 const SizedBox(height: 20),
                 const Text(
@@ -79,7 +78,6 @@ class LoginScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 30),
 
-                // Campo de Email
                 _buildTextField(
                   controller: _emailController,
                   label: 'Email',
@@ -87,7 +85,6 @@ class LoginScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // Campo de Contraseña
                 _buildTextField(
                   controller: _passwordController,
                   label: 'Password',
@@ -96,7 +93,6 @@ class LoginScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 30),
 
-                // Botón de Iniciar Sesión
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -119,7 +115,6 @@ class LoginScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 30),
 
-                // Texto de redirección a registro
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

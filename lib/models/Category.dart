@@ -1,4 +1,3 @@
-// category_model.dart
 
 class Category {
   int id;
@@ -11,7 +10,6 @@ class Category {
     this.description,
   });
 
-  // Constructor principal desde JSON
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
       id: json['id'],
@@ -20,7 +18,6 @@ class Category {
     );
   }
 
-  // Método para convertir un objeto Category a JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,

@@ -4,10 +4,10 @@ import 'dart:convert';
 import '../api_constants.dart';
 
 class OrganizerScreen extends StatefulWidget {
-  final String token; // Parámetro token
+  final String token; 
 
   const OrganizerScreen(
-      {super.key, required this.token}); // Constructor que recibe el token
+      {super.key, required this.token}); 
 
   @override
   _OrganizerScreenState createState() => _OrganizerScreenState();

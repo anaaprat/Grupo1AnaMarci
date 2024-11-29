@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../api_constants.dart';
-import '../models/Event.dart'; // Importa el modelo de eventos
-import '../models/Category.dart'; // Importa el modelo de categoría
+import '../models/Event.dart'; 
+import '../models/Category.dart'; 
 
 class UserService {
   final String token;
@@ -70,7 +70,7 @@ class UserService {
           if (user != null) {
             return user;
           } else {
-            return null; // Retorna null si no se encuentra
+            return null; 
           }
         } else {
           throw Exception('Estructura inesperada en la respuesta.');
