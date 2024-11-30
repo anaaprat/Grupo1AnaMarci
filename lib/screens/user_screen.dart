@@ -1,44 +1,35 @@
 import 'package:flutter/material.dart';
-import '../services/user_service.dart';
-import '../models/Event.dart';
-import '../models/Category.dart';
-import '../widgets/event_card.dart';
-import '../services/email_service.dart';
+import 'package:eventify/services/user_service.dart';
+import 'package:eventify/services/email_service.dart';
+import 'package:eventify/screens/report_screen.dart';
+import 'package:eventify/widgets/event_card.dart';
+import 'package:eventify/widgets/FilterFloatingButton.dart';
+import 'package:eventify/models/event.dart';
+import 'package:eventify/models/category.dart';
+import 'login_screen.dart';
 
 class UserScreen extends StatefulWidget {
   final String token;
   final String userEmail;
 
-  const UserScreen({Key? key, required this.token, required this.userEmail})
-      : super(key: key);
+  const UserScreen({super.key, required this.token, required this.userEmail});
 
   @override
   _UserScreenState createState() => _UserScreenState();
 }
 
-class _UserScreenState extends State<UserScreen> {
+class _UserScreenState extends State<UserScreen>
+    with SingleTickerProviderStateMixin {
   late UserService userService;
   late EmailService emailService;
-
-  String selectedCategory = 'All';
-  String currentSection = 'All Events';
-  Map<int, Category> categoryMap = {};
-
-  List<Event> events = [];
-  Map<String, dynamic> eventsByUser = {};
-  List<Event> userRegisteredEvents = [];
-  int? userId;
-
+  late TabController _tabController;
+  List<Event> originalAllEvents = [];
+  List<Event> originalMyEvents = [];
+  List<Event> allEvents = [];
+  List<Event> myEvents = [];
+  List<Category> categories = [];
   bool isLoading = true;
-
-  // Variables para la pestaña "Report"
-  DateTime? startDate;
-  DateTime? endDate;
-  Map<String, bool> selectedCategories = {
-    'Music': false,
-    'Sport': false,
-    'Technology': false,
-  };
+  int? userId;
 
   @override
   void initState() {
@@ -48,231 +39,205 @@ class _UserScreenState extends State<UserScreen> {
       smtpEmail: 'anaprat26@gmail.com',
       smtpPassword: 'mkxv hldp bxbd aneb',
     );
+    _tabController = TabController(length: 3, vsync: this);
+    _initializeData();
   }
 
-  Future<void> loadCategoriesAndEvents() async {
-    try {
-      final userData =
-          await userService.fetchUserData(widget.token, widget.userEmail);
+  Future<void> _initializeData() async {
+    setState(() => isLoading = true);
 
-      if (userData == null || !userData.containsKey('id')) {
-        throw Exception('No se encontró el usuario o falta el ID.');
+    try {
+      // Load categories first
+      final categoriesData = await userService.getCategories();
+      categories = categoriesData.map((cat) => Category.fromJson(cat)).toList();
+
+      // Fetch user ID
+      userId = await _fetchUserId();
+      if (userId == null) {
+        throw Exception('User ID not found');
       }
 
-      userId = userData['id'];
-
-      final categories = await userService.fetchCategories();
-      final userRegisteredEvents = await userService.fetchEventsByUser(userId!);
-
-      if (!mounted) return;
+      // Fetch events
+      final allEventsData = await userService.getAllEvents();
+      final userEventsData = await userService.getUserEvents(userId!);
 
       setState(() {
-        categoryMap = {for (var category in categories) category.id: category};
-        eventsByUser = userRegisteredEvents;
-        isLoading = false;
+        final now = DateTime.now();
+
+        // Process "All Events"
+        originalAllEvents = allEventsData
+            .map((event) => Event.fromJson(event))
+            .where((event) =>
+                event.start_time.isAfter(now) && // Only future events
+                !userEventsData.any((userEvent) =>
+                    userEvent['id'] == event.id)) // Exclude registered events
+            .toList()
+          ..sort(
+              (a, b) => b.start_time.compareTo(a.start_time)); // Newest first
+
+        allEvents = List.from(originalAllEvents);
+
+        // Process "My Events"
+        originalMyEvents = userEventsData
+            .map((event) => Event.fromJson(event))
+            .where(
+                (event) => event.start_time.isAfter(now)) // Only future events
+            .toList()
+          ..sort(
+              (a, b) => a.start_time.compareTo(b.start_time)); // Oldest first
+
+        myEvents = List.from(originalMyEvents);
       });
     } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  Future<int?> _fetchUserId() async {
+    try {
+      final users = await userService.getAllUsers();
+      final matchingUser = users.firstWhere(
+        (user) => user['email'] == widget.userEmail,
+        orElse: () => null,
+      );
+
+      return matchingUser?['id'];
+    } catch (e) {
+      print('Error fetching user ID: $e');
+      return null;
+    }
+  }
+
+  Future<void> _registerEvent(Event event) async {
+    try {
+      // Register event
+      await userService.registerEvent(userId!, event.id);
+
       setState(() {
-        isLoading = false;
+        allEvents.remove(event);
+        myEvents.add(event);
+
+        // Sort both lists
+        allEvents.sort((a, b) => b.start_time.compareTo(a.start_time));
+        myEvents.sort((a, b) => a.start_time.compareTo(b.start_time));
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al cargar datos: ${e.toString()}')),
+        SnackBar(content: Text('${event.title} successfully registered.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error registering event: $e')),
       );
     }
   }
 
-  List<Event> get filteredEvents {
-    final now = DateTime.now();
-    List<Event> filtered;
+  Future<void> _unregisterEvent(Event event) async {
+    try {
+      // Unregister event
+      await userService.unregisterEvent(userId!, event.id);
 
-    if (currentSection == 'My Events') {
-      // Eventos en los que el usuario está registrado
-      filtered = userRegisteredEvents
-          .where((event) => event.start_time.isAfter(now))
-          .toList();
-    } else {
-      // Eventos en los que el usuario NO está registrado
-      final registeredIds =
-          userRegisteredEvents.map((event) => event.id).toSet();
-      filtered = events
-          .where((event) =>
-              event.start_time.isAfter(now) &&
-              !registeredIds.contains(event.id))
-          .toList();
+      setState(() {
+        myEvents.remove(event);
+        allEvents.add(event);
+
+        // Sort both lists
+        allEvents.sort((a, b) => b.start_time.compareTo(a.start_time));
+        myEvents.sort((a, b) => a.start_time.compareTo(b.start_time));
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${event.title} successfully unregistered.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error unregistering event: $e')),
+      );
     }
-
-    // Filtrar por categoría seleccionada
-    if (selectedCategory != 'All') {
-      filtered = filtered
-          .where((event) => event.category == selectedCategory)
-          .toList();
-    }
-
-    return filtered;
   }
 
-  Future<List<Event>> fetchFilteredEvents() async {
-    final filtered = events.where((event) {
-      final withinDateRange =
-          (startDate == null || event.start_time.isAfter(startDate!)) &&
-              (endDate == null || event.start_time.isBefore(endDate!));
-      final matchesCategory = selectedCategories.entries.any((entry) =>
-          entry.value &&
-          event.category.toLowerCase() == entry.key.toLowerCase());
-      return withinDateRange && matchesCategory;
-    }).toList();
+  void _filterEventsByCategory(String? category) {
+    setState(() {
+      if (category == null) {
+        // Reset filters
+        allEvents = List.from(originalAllEvents);
+        myEvents = List.from(originalMyEvents);
+      } else {
+        // Apply filters
+        allEvents = originalAllEvents
+            .where((event) => event.category == category)
+            .toList()
+          ..sort((a, b) => b.start_time.compareTo(a.start_time));
 
-    return filtered;
+        myEvents = originalMyEvents
+            .where((event) => event.category == category)
+            .toList()
+          ..sort((a, b) => a.start_time.compareTo(b.start_time));
+      }
+    });
   }
 
-  void showEventDetails(Event event) {
+  void _showEventDetailsDialog(BuildContext context, Event event) {
     showDialog(
       context: context,
       builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+        return AlertDialog(
+          title: Text(event.title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Category: ${event.category}'),
+              Text('Date: ${event.start_time.toLocal()}'),
+            ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Text(
-                    event.title,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.purple[800],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 15),
-                if (event.image_url != null && event.image_url!.isNotEmpty)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(15.0),
-                    child: Image.network(
-                      event.image_url!,
-                      height: 150,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                const SizedBox(height: 15),
-                Divider(color: Colors.grey),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Icon(Icons.calendar_today, color: Colors.purple[800]),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Date: ${event.start_time}',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Icon(Icons.category, color: Colors.purple[800]),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Category: ${event.category}',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                if (event.description != null && event.description!.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Divider(color: Colors.grey),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Description:',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.purple[800],
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        event.description!,
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 20),
-                Center(
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text('Close'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple[800],
-                    ),
-                  ),
-                ),
-              ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
             ),
-          ),
+          ],
         );
       },
     );
   }
 
-  void showFilterModal() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Column(
-          children: [
-            ListTile(
-              leading: Icon(Icons.music_note, color: Color(0xFFFFD700)),
-              title: Text('Music'),
-              onTap: () {
-                setState(() {
-                  selectedCategory = 'Music';
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.sports, color: Color(0xFFFF4500)),
-              title: Text('Sport'),
-              onTap: () {
-                setState(() {
-                  selectedCategory = 'Sport';
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.computer, color: Color(0xFF4CAF50)),
-              title: Text('Technology'),
-              onTap: () {
-                setState(() {
-                  selectedCategory = 'Technology';
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.all_inclusive, color: Colors.purple[800]),
-              title: Text('All'),
-              onTap: () {
-                setState(() {
-                  selectedCategory = 'All';
-                });
-                Navigator.pop(context);
-              },
-            ),
-          ],
+  Widget _buildEventsList(List<Event> events, {required bool isMyEvent}) {
+    if (events.isEmpty) {
+      return Center(
+        child: Text(
+          isMyEvent
+              ? 'You are not registered for any upcoming events.'
+              : 'No events available for registration.',
+          style: const TextStyle(fontSize: 16, color: Colors.grey),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: events.length,
+      itemBuilder: (context, index) {
+        final event = events[index];
+
+        final category = categories.firstWhere(
+          (cat) => cat.name == event.category,
+          orElse: () => Category(id: 0, name: 'Uncategorized'),
+        );
+
+        return EventCard(
+          event: event,
+          category: category,
+          isMyEvent: isMyEvent,
+          onRegister: isMyEvent ? null : () => _registerEvent(event),
+          onUnregister: isMyEvent ? () => _unregisterEvent(event) : null,
+          onShowDetails: isMyEvent
+              ? () =>
+                  _showEventDetailsDialog(context, event) // Mostrar detalles
+              : null,
         );
       },
     );
@@ -280,263 +245,71 @@ class _UserScreenState extends State<UserScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Eventify',
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Colors.purple[800],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Colors.purple[800]),
-              child: Text(
-                'Menu',
-                style: TextStyle(color: Colors.white, fontSize: 24),
-              ),
-            ),
-            ListTile(
-              title: Text('All Events'),
-              onTap: () async {
-                setState(() {
-                  currentSection = 'All Events';
-                  selectedCategory = 'All';
-                });
-                await loadCategoriesAndEvents(); // Recargar eventos
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: Text('My Events'),
-              onTap: () async {
-                setState(() {
-                  currentSection = 'My Events';
-                  selectedCategory = 'All';
-                });
-                await loadCategoriesAndEvents(); // Recargar eventos
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: Text('Report'),
-              onTap: () {
-                setState(() {
-                  currentSection = 'Report';
-                });
-                Navigator.pop(context);
-              },
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Event Manager'),
+          bottom: TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(text: 'All Events'),
+              Tab(text: 'My Events'),
+              Tab(text: 'Report'),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () => _confirmLogout(context),
             ),
           ],
         ),
-      ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator(color: Colors.purple[800]))
-          : currentSection == 'Report'
-              ? Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Generate Event Report',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.purple[800],
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      Text(
-                        'Start Date:',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      SizedBox(height: 5),
-                      GestureDetector(
-                        onTap: () async {
-                          DateTime? pickedDate = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime(2000),
-                            lastDate: DateTime(2100),
-                          );
-                          if (pickedDate != null) {
-                            setState(() {
-                              startDate = pickedDate;
-                            });
-                          }
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 15),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            startDate != null
-                                ? '${startDate!.toLocal()}'.split(' ')[0]
-                                : 'Select start date',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      Text(
-                        'End Date:',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      SizedBox(height: 5),
-                      GestureDetector(
-                        onTap: () async {
-                          DateTime? pickedDate = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime(2000),
-                            lastDate: DateTime(2100),
-                          );
-                          if (pickedDate != null) {
-                            setState(() {
-                              endDate = pickedDate;
-                            });
-                          }
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 15),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            endDate != null
-                                ? '${endDate!.toLocal()}'.split(' ')[0]
-                                : 'Select end date',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      Text(
-                        'Event Types:',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      Column(
-                        children: selectedCategories.keys.map((key) {
-                          return CheckboxListTile(
-                            title: Text(key),
-                            value: selectedCategories[key],
-                            onChanged: (value) {
-                              setState(() {
-                                selectedCategories[key] = value!;
-                              });
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      SizedBox(height: 20),
-                      Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () async {
-                                final filteredEvents =
-                                    await fetchFilteredEvents();
-                                await emailService.generateFilteredPdf(
-                                  context,
-                                  filteredEvents,
-                                  openAfterGeneration: true,
-                                  saveToDownloads: true,
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.purple[800],
-                              ),
-                              child: Text('Generate and Save PDF'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () async {
-                                final filteredEvents =
-                                    await fetchFilteredEvents();
-                                await emailService.sendFilteredPdfEmail(
-                                    context, filteredEvents, widget.userEmail);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.purple[800],
-                              ),
-                              child: Text('Send PDF via Email'),
-                            ),
-                          ]),
-                    ],
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildEventsList(allEvents, isMyEvent: false),
+                  _buildEventsList(myEvents, isMyEvent: true),
+                  ReportScreen(
+                    allEvents: originalAllEvents,
+                    emailService: emailService,
+                    userEmail: widget.userEmail,
                   ),
-                )
-              : currentSection == 'All Events' || currentSection == 'My Events'
-                  ? ListView.builder(
-                      itemCount: filteredEvents.length,
-                      itemBuilder: (context, index) {
-                        final event = filteredEvents[index];
-
-                        return EventCard(
-                          event: event,
-                          contextSection: currentSection,
-                          onRegister: currentSection == 'All Events'
-                              ? () async {
-                                  try {
-                                    await userService.registerEvent(
-                                        userId!, event.id);
-                                    setState(() {
-                                      userRegisteredEvents.add(event);
-                                      events.remove(event);
-                                    });
-                                  } catch (e) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                          content: Text(
-                                              'Error al registrar el evento: $e')),
-                                    );
-                                  }
-                                }
-                              : null,
-                          onSuspend: currentSection == 'My Events'
-                              ? () async {
-                                  try {
-                                    await userService.unregisterEvent(
-                                        userId!, event.id);
-                                    setState(() {
-                                      events.add(event);
-                                      userRegisteredEvents.remove(event);
-                                    });
-                                  } catch (e) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                          content: Text(
-                                              'Error al desregistrar el evento: $e')),
-                                    );
-                                  }
-                                }
-                              : null,
-                          onShowDetails: () {
-                            showEventDetails(event);
-                          },
-                        );
-                      },
-                    )
-                  : Center(
-                      child: Text(
-                        'No data available.',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-      floatingActionButton: currentSection != 'Report'
-          ? FloatingActionButton(
-              backgroundColor: Colors.purple[800],
-              child: Icon(Icons.filter_list, color: Colors.white),
-              onPressed: showFilterModal,
-            )
-          : null,
+                ],
+              ),
+        floatingActionButton: FilterFloatingButton(
+          onFilter: (category) => _filterEventsByCategory(category),
+        ),
+      ),
     );
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Confirm Logout'),
+          content: const Text('Are you sure you want to log out?'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Logout')),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout == true) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    }
   }
 }

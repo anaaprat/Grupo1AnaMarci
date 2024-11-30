@@ -1,8 +1,7 @@
-
 class Category {
-  int id;
-  String name;
-  String? description;
+  final int id;
+  final String name;
+  final String? description;
 
   Category({
     required this.id,
@@ -14,15 +13,7 @@ class Category {
     return Category(
       id: json['id'],
       name: json['name'],
-      description: json['description'] ?? '',
+      description: json['description'],
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'description': description,
-    };
   }
 }
