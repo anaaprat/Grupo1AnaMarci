@@ -8,7 +8,8 @@ class UserService {
   UserService({required this.token});
 
   // Método genérico para obtener datos de la API
-  Future<dynamic> _fetchData(String endpoint, {Map<String, dynamic>? body}) async {
+  Future<dynamic> _fetchData(String endpoint,
+      {Map<String, dynamic>? body}) async {
     final uri = Uri.parse('$baseUrl/$endpoint');
     final headers = {
       'Accept': 'application/json',
@@ -61,14 +62,18 @@ class UserService {
         'registered_at': DateTime.now().toIso8601String(),
       },
     );
-    return response is Map && response.containsKey('user_id') && response.containsKey('event_id');
+    return response is Map &&
+        response.containsKey('user_id') &&
+        response.containsKey('event_id');
   }
 
   // Desregistrar de un evento
   Future<bool> unregisterEvent(int userId, int eventId) async {
     final response = await _fetchData('unregisterEvent',
         body: {'user_id': userId, 'event_id': eventId});
-    return response is Map && response.containsKey('user_id') && response.containsKey('event_id');
+    return response is Map &&
+        response.containsKey('user_id') &&
+        response.containsKey('event_id');
   }
 
   // Obtener todos los usuarios
@@ -76,4 +81,6 @@ class UserService {
     final data = await _fetchData('users');
     return data is List ? data : [];
   }
+
+  
 }

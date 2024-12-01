@@ -8,7 +8,8 @@ class EventCard extends StatelessWidget {
   final bool isMyEvent;
   final VoidCallback? onRegister;
   final VoidCallback? onUnregister;
-  final VoidCallback? onShowDetails; // Nuevo parámetro opcional
+  final VoidCallback? onShowDetails;
+  final String token;
 
   const EventCard({
     super.key,
@@ -18,6 +19,7 @@ class EventCard extends StatelessWidget {
     this.onRegister,
     this.onUnregister,
     this.onShowDetails,
+    required this.token,
   });
 
   @override
@@ -54,7 +56,7 @@ class EventCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10.0),
             child: Text(
-              'Date: ${event.start_time.toLocal()}',
+              'Fecha: ${event.start_time.toLocal()}',
               style: const TextStyle(fontSize: 14, color: Colors.purpleAccent),
             ),
           ),
@@ -62,10 +64,10 @@ class EventCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              if (isMyEvent)
+              if (onShowDetails != null)
                 IconButton(
                   icon: const Icon(Icons.info, color: Colors.blue),
-                  onPressed: onShowDetails, // Botón para mostrar detalles
+                  onPressed: onShowDetails,
                 ),
               IconButton(
                 icon: Icon(
@@ -82,16 +84,12 @@ class EventCard extends StatelessWidget {
   }
 
   Color _getCategoryColor(String categoryName) {
-    print('Event Title: ${event.title}');
-    print('Event Category: ${event.category}');
-    print('Event Image URL: ${event.image_url}');
-
-    switch (categoryName.toLowerCase()) {
-      case 'music':
+    switch (categoryName) {
+      case 'Music':
         return const Color(0xFFFFD700);
-      case 'sport':
+      case 'Sport':
         return const Color(0xFFFF4500);
-      case 'technology':
+      case 'Technology':
         return const Color(0xFF4CAF50);
       default:
         return Colors.grey;

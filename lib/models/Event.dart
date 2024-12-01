@@ -15,7 +15,7 @@ class Event {
     this.description,
   });
   factory Event.fromJson(Map<String, dynamic> json) {
-    print('JSON received: $json'); // Verifica los datos que vienen del servidor
+    print('JSON received: $json'); 
     return Event(
       id: json['id'],
       title: json['title'] ?? 'Untitled Event',

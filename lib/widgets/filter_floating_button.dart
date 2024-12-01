@@ -20,7 +20,7 @@ class FilterFloatingButton extends StatelessWidget {
                   leading: const Icon(Icons.all_inclusive, color: Colors.blue),
                   title: const Text('All'),
                   onTap: () {
-                    onFilter('All'); // Pasar "All" para mostrar todos
+                    onFilter('All');
                     Navigator.pop(context);
                   },
                 ),

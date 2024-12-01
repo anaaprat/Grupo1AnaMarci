@@ -1,12 +1,13 @@
+import 'package:eventify/screens/show_details_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:eventify/services/user_service.dart';
 import 'package:eventify/services/email_service.dart';
 import 'package:eventify/screens/report_screen.dart';
 import 'package:eventify/widgets/event_card.dart';
-import 'package:eventify/widgets/FilterFloatingButton.dart';
+import 'package:eventify/widgets/filter_floating_button.dart';
 import 'package:eventify/models/event.dart';
 import 'package:eventify/models/category.dart';
-import 'login_screen.dart';
+import 'package:eventify/providers/user_provider.dart';
 
 class UserScreen extends StatefulWidget {
   final String token;
@@ -23,12 +24,14 @@ class _UserScreenState extends State<UserScreen>
   late UserService userService;
   late EmailService emailService;
   late TabController _tabController;
+  late UserProvider userProvider;
   List<Event> originalAllEvents = [];
   List<Event> originalMyEvents = [];
   List<Event> allEvents = [];
   List<Event> myEvents = [];
   List<Category> categories = [];
   bool isLoading = true;
+  bool showFloatingButton = true;
   int? userId;
 
   @override
@@ -40,51 +43,62 @@ class _UserScreenState extends State<UserScreen>
       smtpPassword: 'mkxv hldp bxbd aneb',
     );
     _tabController = TabController(length: 3, vsync: this);
+    userProvider = UserProvider();
+    _tabController.addListener(() {
+      setState(() {
+        showFloatingButton = _tabController.index == 0;
+      });
+    });
+
     _initializeData();
+  }
+
+  Future<int?> _fetchUserId() async {
+    try {
+      final users = await userService.getAllUsers();
+      final matchingUser = users.firstWhere(
+        (user) => user['email'] == widget.userEmail,
+        orElse: () => null,
+      );
+      return matchingUser?['id'];
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<void> _initializeData() async {
     setState(() => isLoading = true);
 
     try {
-      // Load categories first
       final categoriesData = await userService.getCategories();
       categories = categoriesData.map((cat) => Category.fromJson(cat)).toList();
 
-      // Fetch user ID
       userId = await _fetchUserId();
       if (userId == null) {
         throw Exception('User ID not found');
       }
 
-      // Fetch events
       final allEventsData = await userService.getAllEvents();
       final userEventsData = await userService.getUserEvents(userId!);
 
       setState(() {
         final now = DateTime.now();
 
-        // Process "All Events"
         originalAllEvents = allEventsData
             .map((event) => Event.fromJson(event))
             .where((event) =>
-                event.start_time.isAfter(now) && // Only future events
-                !userEventsData.any((userEvent) =>
-                    userEvent['id'] == event.id)) // Exclude registered events
+                event.start_time.isAfter(now) &&
+                !userEventsData.any((userEvent) => userEvent['id'] == event.id))
             .toList()
-          ..sort(
-              (a, b) => b.start_time.compareTo(a.start_time)); // Newest first
+          ..sort((a, b) => b.start_time.compareTo(a.start_time));
 
         allEvents = List.from(originalAllEvents);
 
-        // Process "My Events"
         originalMyEvents = userEventsData
             .map((event) => Event.fromJson(event))
-            .where(
-                (event) => event.start_time.isAfter(now)) // Only future events
+            .where((event) => event.start_time.isAfter(now))
             .toList()
-          ..sort(
-              (a, b) => a.start_time.compareTo(b.start_time)); // Oldest first
+          ..sort((a, b) => a.start_time.compareTo(b.start_time));
 
         myEvents = List.from(originalMyEvents);
       });
@@ -96,31 +110,14 @@ class _UserScreenState extends State<UserScreen>
     }
   }
 
-  Future<int?> _fetchUserId() async {
-    try {
-      final users = await userService.getAllUsers();
-      final matchingUser = users.firstWhere(
-        (user) => user['email'] == widget.userEmail,
-        orElse: () => null,
-      );
-
-      return matchingUser?['id'];
-    } catch (e) {
-      print('Error fetching user ID: $e');
-      return null;
-    }
-  }
-
   Future<void> _registerEvent(Event event) async {
     try {
-      // Register event
       await userService.registerEvent(userId!, event.id);
 
       setState(() {
         allEvents.remove(event);
         myEvents.add(event);
 
-        // Sort both lists
         allEvents.sort((a, b) => b.start_time.compareTo(a.start_time));
         myEvents.sort((a, b) => a.start_time.compareTo(b.start_time));
       });
@@ -137,14 +134,12 @@ class _UserScreenState extends State<UserScreen>
 
   Future<void> _unregisterEvent(Event event) async {
     try {
-      // Unregister event
       await userService.unregisterEvent(userId!, event.id);
 
       setState(() {
         myEvents.remove(event);
         allEvents.add(event);
 
-        // Sort both lists
         allEvents.sort((a, b) => b.start_time.compareTo(a.start_time));
         myEvents.sort((a, b) => a.start_time.compareTo(b.start_time));
       });
@@ -161,12 +156,10 @@ class _UserScreenState extends State<UserScreen>
 
   void _filterEventsByCategory(String? category) {
     setState(() {
-      if (category == null) {
-        // Reset filters
+      if (category == null || category == "All") {
         allEvents = List.from(originalAllEvents);
         myEvents = List.from(originalMyEvents);
       } else {
-        // Apply filters
         allEvents = originalAllEvents
             .where((event) => event.category == category)
             .toList()
@@ -178,31 +171,6 @@ class _UserScreenState extends State<UserScreen>
           ..sort((a, b) => a.start_time.compareTo(b.start_time));
       }
     });
-  }
-
-  void _showEventDetailsDialog(BuildContext context, Event event) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(event.title),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Category: ${event.category}'),
-              Text('Date: ${event.start_time.toLocal()}'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   Widget _buildEventsList(List<Event> events, {required bool isMyEvent}) {
@@ -234,10 +202,22 @@ class _UserScreenState extends State<UserScreen>
           isMyEvent: isMyEvent,
           onRegister: isMyEvent ? null : () => _registerEvent(event),
           onUnregister: isMyEvent ? () => _unregisterEvent(event) : null,
+
           onShowDetails: isMyEvent
-              ? () =>
-                  _showEventDetailsDialog(context, event) // Mostrar detalles
+              ? () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ShowDetailsScreen(
+                        eventId: event.id,
+                        token: widget.token,
+                        userId: userId!,
+                      ),
+                    ),
+                  );
+                }
               : null,
+          token: widget.token, 
         );
       },
     );
@@ -261,7 +241,7 @@ class _UserScreenState extends State<UserScreen>
           actions: [
             IconButton(
               icon: const Icon(Icons.logout),
-              onPressed: () => _confirmLogout(context),
+              onPressed: () => userProvider.confirmLogout(context),
             ),
           ],
         ),
@@ -279,37 +259,12 @@ class _UserScreenState extends State<UserScreen>
                   ),
                 ],
               ),
-        floatingActionButton: FilterFloatingButton(
-          onFilter: (category) => _filterEventsByCategory(category),
-        ),
+        floatingActionButton: showFloatingButton
+            ? FilterFloatingButton(
+                onFilter: (category) => _filterEventsByCategory(category),
+              )
+            : null,
       ),
     );
-  }
-
-  Future<void> _confirmLogout(BuildContext context) async {
-    final shouldLogout = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Confirm Logout'),
-          content: const Text('Are you sure you want to log out?'),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel')),
-            TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Logout')),
-          ],
-        );
-      },
-    );
-
-    if (shouldLogout == true) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => LoginScreen()),
-      );
-    }
   }
 }
