@@ -41,7 +41,6 @@ class _ShowDetailsScreenState extends State<ShowDetailsScreen> {
       if (eventJson == null) throw Exception('Evento no encontrado');
       return EventByUser.fromJson(eventJson);
     } catch (e) {
-      print('Error al obtener los detalles del evento: $e');
       return null;
     }
   }
