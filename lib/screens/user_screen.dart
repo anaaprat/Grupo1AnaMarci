@@ -202,7 +202,6 @@ class _UserScreenState extends State<UserScreen>
           isMyEvent: isMyEvent,
           onRegister: isMyEvent ? null : () => _registerEvent(event),
           onUnregister: isMyEvent ? () => _unregisterEvent(event) : null,
-
           onShowDetails: isMyEvent
               ? () {
                   Navigator.push(
@@ -217,7 +216,7 @@ class _UserScreenState extends State<UserScreen>
                   );
                 }
               : null,
-          token: widget.token, 
+          token: widget.token,
         );
       },
     );
@@ -253,7 +252,7 @@ class _UserScreenState extends State<UserScreen>
                   _buildEventsList(allEvents, isMyEvent: false),
                   _buildEventsList(myEvents, isMyEvent: true),
                   ReportScreen(
-                    allEvents: originalAllEvents,
+                    token: widget.token,
                     emailService: emailService,
                     userEmail: widget.userEmail,
                   ),

@@ -91,6 +91,8 @@ class EventCard extends StatelessWidget {
         return const Color(0xFFFF4500);
       case 'Technology':
         return const Color(0xFF4CAF50);
+      case 'Cultural':
+        return const Color.fromARGB(255, 170, 60, 190);
       default:
         return Colors.grey;
     }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/user_service.dart';
-import '../models/event_by_user.dart';
+import '../models/Event.dart';
 
 class ShowDetailsScreen extends StatefulWidget {
   final int eventId;
@@ -19,7 +19,7 @@ class ShowDetailsScreen extends StatefulWidget {
 }
 
 class _ShowDetailsScreenState extends State<ShowDetailsScreen> {
-  late Future<EventByUser?> eventDetails;
+  late Future<Event?> eventDetails;
   late Future<List<dynamic>> categories;
   late UserService userService;
 
@@ -31,7 +31,7 @@ class _ShowDetailsScreenState extends State<ShowDetailsScreen> {
     categories = userService.getCategories();
   }
 
-  Future<EventByUser?> fetchEventDetails() async {
+  Future<Event?> fetchEventDetails() async {
     try {
       final events = await userService.getUserEvents(widget.userId);
       final eventJson = events.firstWhere(
@@ -39,7 +39,7 @@ class _ShowDetailsScreenState extends State<ShowDetailsScreen> {
         orElse: () => null,
       );
       if (eventJson == null) throw Exception('Evento no encontrado');
-      return EventByUser.fromJson(eventJson);
+      return Event.fromJson(eventJson);
     } catch (e) {
       return null;
     }
@@ -47,7 +47,7 @@ class _ShowDetailsScreenState extends State<ShowDetailsScreen> {
 
   String getCategoryName(int categoryId, List<dynamic> categoryList) {
     if (categoryId == 0) {
-      return 'Sin categoría asignada'; 
+      return 'Sin categoría asignada';
     }
 
     final category = categoryList.firstWhere(
@@ -69,7 +69,7 @@ class _ShowDetailsScreenState extends State<ShowDetailsScreen> {
       appBar: AppBar(
         title: Text('Detalles del Evento'),
       ),
-      body: FutureBuilder<EventByUser?>(
+      body: FutureBuilder<Event?>(
         future: eventDetails,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -98,7 +98,7 @@ class _ShowDetailsScreenState extends State<ShowDetailsScreen> {
 
               final categoryList = categorySnapshot.data!;
               final categoryName =
-                  getCategoryName(event.category_id, categoryList);
+                  getCategoryName(event.category_id!, categoryList);
 
               return Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -146,17 +146,16 @@ class _ShowDetailsScreenState extends State<ShowDetailsScreen> {
                           ),
                         ],
                       ),
-                      if (event.end_time != null)
-                        Row(
-                          children: [
-                            const Icon(Icons.access_time, size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Fin: ${event.end_time}',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          ],
-                        ),
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Fin: ${event.end_time}',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         'Descripción:',

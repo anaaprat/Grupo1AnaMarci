@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:eventify/screens/login_screen.dart';
 
-class UserProvider with ChangeNotifier{
-    Future<void> confirmLogout(BuildContext context) async {
+class UserProvider with ChangeNotifier {
+  Future<void> confirmLogout(BuildContext context) async {
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) {
