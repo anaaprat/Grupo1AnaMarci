@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:eventify/models/event.dart';
-import 'package:eventify/models/category.dart';
+import 'package:eventify/models/Category.dart';
 
 class EventCard extends StatelessWidget {
   final Event event;
   final Category category;
+  final String categoryName;
   final bool isMyEvent;
   final VoidCallback? onRegister;
   final VoidCallback? onUnregister;
@@ -15,6 +16,7 @@ class EventCard extends StatelessWidget {
     super.key,
     required this.event,
     required this.category,
+    required this.categoryName,
     required this.isMyEvent,
     this.onRegister,
     this.onUnregister,
@@ -56,7 +58,7 @@ class EventCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10.0),
             child: Text(
-              'Fecha: ${event.start_time.toLocal()}',
+              'Date: ${event.start_time.toLocal()}',
               style: const TextStyle(fontSize: 14, color: Colors.purpleAccent),
             ),
           ),

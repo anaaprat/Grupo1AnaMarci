@@ -25,6 +25,8 @@ class _ReportScreenState extends State<ReportScreen> {
   late UserService userService;
   Map<String, bool> eventsPDF = {};
   Map<String, bool> selectedCategories = {};
+  List<Event> eventsList = [];
+  Map<String, String> categoryNames = {}; // Relación de IDs con nombres
 
   @override
   void initState() {
@@ -32,8 +34,6 @@ class _ReportScreenState extends State<ReportScreen> {
     userService = UserService(token: widget.token);
     _loadCategories();
   }
-
-  Map<String, String> categoryNames = {}; // Relación de IDs con nombres
 
   Future<void> _loadCategories() async {
     try {
@@ -62,8 +62,6 @@ class _ReportScreenState extends State<ReportScreen> {
       }
     }
   }
-
-  List<Event> eventsList = [];
 
   Future<void> loadEvents() async {
     try {
@@ -116,16 +114,6 @@ class _ReportScreenState extends State<ReportScreen> {
     }
   }
 
-  List<Event> _convertEventsMapToList(Map<String, bool> eventsMap) {
-    return eventsMap.entries.map((entry) {
-      return Event(
-        id: 0,
-        title: entry.key,
-        start_time: DateTime.now(),
-      );
-    }).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -133,102 +121,182 @@ class _ReportScreenState extends State<ReportScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Título principal
           const Text(
             'Generate Event Report',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
+              color: Colors.blueAccent,
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Select Date Range:',
-            style: TextStyle(fontSize: 16),
-          ),
-          GestureDetector(
-            onTap: () async {
-              final pickedDateRange = await showDateRangePicker(
-                context: context,
-                firstDate: DateTime(2000),
-                lastDate: DateTime(2100),
-                initialDateRange: iniDate != null && endDate != null
-                    ? DateTimeRange(start: iniDate!, end: endDate!)
-                    : null,
-              );
 
-              if (pickedDateRange != null) {
-                setState(() {
-                  iniDate = pickedDateRange.start;
-                  endDate = pickedDateRange.end;
-                });
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                iniDate != null && endDate != null
-                    ? '${iniDate!.toLocal()} - ${endDate!.toLocal()}'
-                    : 'Select date range',
-                style: const TextStyle(fontSize: 16),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Event Types:',
-            style: TextStyle(fontSize: 16),
-          ),
-          Column(
-            children: selectedCategories.entries.map((entry) {
-              final categoryName =
-                  categoryNames[entry.key] ?? 'Unknown'; // Obtener el nombre
-              return CheckboxListTile(
-                title: Text(categoryName),
-                value: entry.value,
-                onChanged: (value) {
-                  setState(() {
-                    selectedCategories[entry.key] = value!;
-                  });
-                },
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 20),
+          // Sección de Fechas
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              ElevatedButton(
-                onPressed: () async {
-                  await loadEvents();
-                  if (eventsList.isNotEmpty) {
-                    await widget.emailService.generateFilteredPdf(
-                      context,
-                      eventsList,
-                      openAfterGeneration: true,
-                      saveToDownloads: true,
+              Expanded(
+                child: GestureDetector(
+                  onTap: () async {
+                    final pickedDate = await showDatePicker(
+                      context: context,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
                     );
-                  }
-                },
-                child: const Text('Generate and Save PDF'),
+                    if (pickedDate != null) {
+                      setState(() {
+                        iniDate = pickedDate;
+                      });
+                    }
+                  },
+                  child: _buildDateContainer('Start Date',
+                      iniDate?.toLocal().toString().split(' ')[0]),
+                ),
               ),
-              ElevatedButton(
-                onPressed: () async {
-                  await loadEvents();
-                  if (eventsList.isNotEmpty) {
-                    await widget.emailService.sendFilteredPdfEmail(
-                      context,
-                      eventsList,
-                      widget.userEmail,
+              const SizedBox(width: 10),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () async {
+                    final pickedDate = await showDatePicker(
+                      context: context,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
                     );
-                  }
-                },
-                child: const Text('Send PDF via Email'),
+                    if (pickedDate != null) {
+                      setState(() {
+                        endDate = pickedDate;
+                      });
+                    }
+                  },
+                  child: _buildDateContainer(
+                      'End Date', endDate?.toLocal().toString().split(' ')[0]),
+                ),
               ),
             ],
+          ),
+          const SizedBox(height: 20),
+
+          // Sección de Tipos de Eventos
+          const Text(
+            'Event Types:',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: ListView(
+              children: selectedCategories.entries.map((entry) {
+                final categoryName =
+                    categoryNames[entry.key] ?? 'Unknown'; // Obtener el nombre
+                return Card(
+                  elevation: 2,
+                  margin: const EdgeInsets.symmetric(vertical: 5),
+                  child: CheckboxListTile(
+                    activeColor: Colors.blueAccent,
+                    title: Text(categoryName,
+                        style: const TextStyle(fontWeight: FontWeight.w500)),
+                    value: entry.value,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedCategories[entry.key] = value!;
+                      });
+                    },
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Botones
+// Botones
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              SizedBox(
+                height: 40, // Ajustar altura del botón
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    await loadEvents();
+                    if (eventsList.isNotEmpty) {
+                      await widget.emailService.generateFilteredPdf(
+                        context,
+                        eventsList,
+                        openAfterGeneration: true,
+                        saveToDownloads: true,
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.picture_as_pdf, size: 16),
+                  label: const Text(
+                    'Generate PDF',
+                    style: TextStyle(fontSize: 12), // Reducir tamaño de fuente
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10), // Reducir padding
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 40, // Ajustar altura del botón
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    await loadEvents();
+                    if (eventsList.isNotEmpty) {
+                      await widget.emailService.sendFilteredPdfEmail(
+                        context,
+                        eventsList,
+                        widget.userEmail,
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.email, size: 16),
+                  label: const Text(
+                    'Send Email',
+                    style: TextStyle(fontSize: 12), // Reducir tamaño de fuente
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10), // Reducir padding
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10), // Espacio adicional arriba de los botones
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateContainer(String label, String? date) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade400),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            date ?? 'Select date',
+            style: const TextStyle(fontSize: 16),
           ),
         ],
       ),

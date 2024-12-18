@@ -29,8 +29,15 @@ class User {
           ? DateTime.parse(json['email_verified_at'])
           : null,
       profilePicture: json['profilePicture'],
-      actived: json['actived'] == 1, 
-      deleted: json['deleted'] == 1, 
+      actived: json['actived'] == 1,
+      deleted: json['deleted'] == 1,
     );
+  }
+
+  @override
+  String toString() {
+    return 'User{id: $id, name: $name, email: $email, role: $role, '
+        'emailVerifiedAt: $emailVerifiedAt, profilePicture: $profilePicture, '
+        'actived: $actived, deleted: $deleted}';
   }
 }

@@ -20,7 +20,6 @@ class ShowDetailsScreen extends StatefulWidget {
 
 class _ShowDetailsScreenState extends State<ShowDetailsScreen> {
   late Future<Event?> eventDetails;
-  late Future<List<dynamic>> categories;
   late UserService userService;
 
   @override
@@ -28,164 +27,138 @@ class _ShowDetailsScreenState extends State<ShowDetailsScreen> {
     super.initState();
     userService = UserService(token: widget.token);
     eventDetails = fetchEventDetails();
-    categories = userService.getCategories();
   }
 
   Future<Event?> fetchEventDetails() async {
     try {
+      // Obtener eventos del usuario
       final events = await userService.getUserEvents(widget.userId);
       final eventJson = events.firstWhere(
         (event) => event['id'] == widget.eventId,
         orElse: () => null,
       );
+
       if (eventJson == null) throw Exception('Evento no encontrado');
+
+      // Obtener la lista de categorías
+      final fetchedCategories = await userService.getCategories();
+
+      // Buscar el nombre de la categoría correspondiente al category_id
+      final category_id = eventJson['category_id'];
+      String category_name = 'Categoría no especificada';
+
+      if (category_id != null) {
+        final matchedCategory = fetchedCategories.firstWhere(
+          (category) => category['id'] == category_id,
+          orElse: () => null,
+        );
+
+        if (matchedCategory != null) {
+          category_name = matchedCategory['name'];
+        }
+      }
+
+      // Asignar el nombre de la categoría al evento
+      eventJson['category'] = category_name;
+
       return Event.fromJson(eventJson);
     } catch (e) {
+      print('Error fetching event details: $e');
       return null;
     }
   }
 
-  String getCategoryName(int categoryId, List<dynamic> categoryList) {
-    if (categoryId == 0) {
-      return 'Sin categoría asignada';
-    }
-
-    final category = categoryList.firstWhere(
-      (cat) => cat['id'] == categoryId,
-      orElse: () => null,
-    );
-
-    if (category == null) {
-      print('No se encontró categoría para ID: $categoryId');
-      return 'Categoría desconocida';
-    }
-
-    return category['name'] ?? 'Categoría desconocida';
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Detalles del Evento'),
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      constraints:
+          const BoxConstraints(maxHeight: 600), // Altura máxima del modal
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Imagen del evento
+            FutureBuilder<Event?>(
+              future: eventDetails,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(
+                      child: Text('Error: ${snapshot.error}',
+                          style: const TextStyle(color: Colors.red)));
+                } else if (!snapshot.hasData || snapshot.data == null) {
+                  return const Text('No se encontraron detalles del evento');
+                }
+
+                final event = snapshot.data!;
+                return Column(
+                  children: [
+                    // Imagen
+                    event.image_url != null && event.image_url!.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(
+                              event.image_url!,
+                              height: 200,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Container(
+                            height: 200,
+                            color: Colors.grey[300],
+                            child: const Center(
+                                child: Icon(Icons.image, size: 60)),
+                          ),
+
+                    const SizedBox(height: 12),
+                    // Título
+                    Text(event.title,
+                        style: const TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.bold)),
+
+                    const SizedBox(height: 8),
+                    Divider(color: Colors.deepPurpleAccent),
+
+                    // Detalles del evento
+                    _buildDetailRow(Icons.category, 'Category',
+                        event.category_name ?? 'No especificada'),
+                    _buildDetailRow(Icons.date_range, 'Start Time',
+                        event.start_time.toString()),
+                    _buildDetailRow(Icons.access_time, 'End Time',
+                        event.end_time?.toString() ?? '---'),
+                    _buildDetailRow(
+                        Icons.location_on, 'Location', event.location ?? '---'),
+                    _buildDetailRow(Icons.person, 'Organizer ID',
+                        event.organizer_id.toString()),
+                    _buildDetailRow(Icons.description, 'Description',
+                        event.description ?? '---'),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
-      body: FutureBuilder<Event?>(
-        future: eventDetails,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data == null) {
-            return const Center(
-                child: Text('No se encontraron detalles para este evento.'));
-          }
+    );
+  }
 
-          final event = snapshot.data!;
-          return FutureBuilder<List<dynamic>>(
-            future: categories,
-            builder: (context, categorySnapshot) {
-              if (categorySnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              } else if (categorySnapshot.hasError) {
-                return Center(
-                    child: Text(
-                        'Error al cargar las categorías: ${categorySnapshot.error}'));
-              } else if (!categorySnapshot.hasData) {
-                return const Center(
-                    child: Text('No se encontraron categorías.'));
-              }
-
-              final categoryList = categorySnapshot.data!;
-              final categoryName =
-                  getCategoryName(event.category_id!, categoryList);
-
-              return Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        event.title,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          const Icon(Icons.category, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Categoría: $categoryName',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Ubicación: ${event.location ?? 'No especificada'}',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Icon(Icons.date_range, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Inicio: ${event.start_time}',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          const Icon(Icons.access_time, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Fin: ${event.end_time}',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Descripción:',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        event.description ?? 'Sin descripción',
-                        style: const TextStyle(fontSize: 16),
-                        textAlign: TextAlign.justify,
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          const Icon(Icons.person, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Organizador ID: ${event.organizer_id}',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
+  Widget _buildDetailRow(IconData icon, String label, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.deepPurpleAccent, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '$label: ${value ?? '---'}',
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+        ],
       ),
     );
   }

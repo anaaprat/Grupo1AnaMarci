@@ -6,7 +6,7 @@ import 'package:eventify/screens/report_screen.dart';
 import 'package:eventify/widgets/event_card.dart';
 import 'package:eventify/widgets/filter_floating_button.dart';
 import 'package:eventify/models/event.dart';
-import 'package:eventify/models/category.dart';
+import 'package:eventify/models/Category.dart';
 import 'package:eventify/providers/user_provider.dart';
 
 class UserScreen extends StatefulWidget {
@@ -199,20 +199,26 @@ class _UserScreenState extends State<UserScreen>
         return EventCard(
           event: event,
           category: category,
+          categoryName: category.name,
           isMyEvent: isMyEvent,
           onRegister: isMyEvent ? null : () => _registerEvent(event),
           onUnregister: isMyEvent ? () => _unregisterEvent(event) : null,
           onShowDetails: isMyEvent
               ? () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ShowDetailsScreen(
-                        eventId: event.id,
-                        token: widget.token,
-                        userId: userId!,
-                      ),
-                    ),
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Dialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        child: ShowDetailsScreen(
+                          eventId: event.id,
+                          token: widget.token,
+                          userId: userId!,
+                        ),
+                      );
+                    },
                   );
                 }
               : null,

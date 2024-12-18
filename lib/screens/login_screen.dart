@@ -25,7 +25,7 @@ class LoginScreen extends StatelessWidget {
           nextScreen = AdminScreen(token: authProvider.token!);
           break;
         case 'o':
-          nextScreen = OrganizerScreen(token: authProvider.token!);
+          nextScreen = OrganizerScreen(token: authProvider.token!, userEmail: userEmail);
           break;
         default:
           nextScreen =

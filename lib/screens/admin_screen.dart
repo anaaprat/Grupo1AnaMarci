@@ -29,6 +29,7 @@ class _AdminScreenState extends State<AdminScreen> {
     setState(() => _isLoading = true);
     try {
       final users = await adminService.getUsers();
+      print('$users');
       setState(() {
         _users = users;
         _isLoading = false;
@@ -109,7 +110,6 @@ class _AdminScreenState extends State<AdminScreen> {
                     itemCount: _users.length,
                     itemBuilder: (context, index) {
                       final user = _users[index];
-
                       return Dismissible(
                         key: ValueKey(user.id),
                         background: _buildDismissBackground(true, user.actived),
@@ -133,6 +133,8 @@ class _AdminScreenState extends State<AdminScreen> {
                                   });
                                   _showSnackBar(
                                       'User ${user.name} deleted successfully');
+                                } else {
+                                  throw Exception('Failed to delete user.');
                                 }
                               } catch (e) {
                                 _showSnackBar(e.toString());
@@ -147,16 +149,27 @@ class _AdminScreenState extends State<AdminScreen> {
 
                             if (confirmation == true) {
                               try {
+                                bool success;
+
                                 if (user.actived) {
-                                  await adminService.deactivateUser(user.id);
+                                  success = await adminService
+                                      .deactivateUser(user.id);
                                 } else {
-                                  await adminService.activateUser(user.id);
+                                  success =
+                                      await adminService.activateUser(user.id);
                                 }
-                                setState(() {
-                                  user.actived = !user.actived;
-                                });
-                                _showSnackBar(
-                                    'User ${user.actived ? 'activated' : 'deactivated'} successfully');
+
+                                if (success) {
+                                  setState(() {
+                                    user.actived = !user
+                                        .actived; // Cambia el estado del usuario
+                                  });
+                                  _showSnackBar(
+                                      'User ${user.actived ? 'activated' : 'deactivated'} successfully');
+                                } else {
+                                  throw Exception(
+                                      'Failed to update user status.');
+                                }
                               } catch (e) {
                                 _showSnackBar(
                                     'Failed to update user status: $e');

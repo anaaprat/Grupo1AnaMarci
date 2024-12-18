@@ -29,34 +29,34 @@ class AdminService {
     }
   }
 
-  // Activar usuario
-  Future<Map<String, dynamic>> activateUser(int userId) async {
+  Future<bool> activateUser(int userId) async {
     final response = await http.post(
       Uri.parse('$baseUrl/activate'),
       headers: {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
       },
-      body: jsonEncode({
-        'id': userId,
-      }),
+      body: jsonEncode({'id': userId}),
     );
-    return _processResponse(response);
+
+    final result = _processResponse(response);
+    return result['success'] == true; // Devuelve true si 'success' es true
   }
 
-// Desactivar usuario
-  Future<Map<String, dynamic>> deactivateUser(int userId) async {
+  Future<bool> deactivateUser(int userId) async {
     final response = await http.post(
       Uri.parse('$baseUrl/deactivate'),
       headers: {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
       },
-      body: jsonEncode({
-        'id': userId,
-      }),
+      body: jsonEncode({'id': userId}),
     );
-    return _processResponse(response);
+
+    final result = _processResponse(response);
+    return result['success'] == true; // Devuelve true si 'success' es true
   }
 
   // Obtener todos los usuarios
@@ -124,7 +124,7 @@ class AdminService {
       },
       body: jsonEncode({
         'id': userId,
-        'name': name, 
+        'name': name,
       }),
     );
 
