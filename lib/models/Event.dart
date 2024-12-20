@@ -8,6 +8,9 @@ class Event {
   final String? category_name;
   final int? category_id;
   final int? organizer_id;
+  final int? latitude;
+  final int? longitude;
+  final int? max_atendees;
   final String? description;
   final String? location;
   final int? price;
@@ -25,6 +28,9 @@ class Event {
     this.organizer_id,
     this.description,
     this.location,
+    this.latitude,
+    this.longitude,
+    this.max_atendees,
     this.price,
     this.deleted,
   });
@@ -42,14 +48,38 @@ class Event {
       category: json['category'] ?? 'General',
       category_name: json['category_name'] ?? 'General',
       location: json['location'] ?? 'No location',
+      latitude: json['latitude'] ?? 0,
+      longitude: json['longitude'] ?? 0,
+      max_atendees: json['max_atendees'] ?? 0,
       price: json['price'] != null ? int.tryParse(json['price'].toString()) : 0,
-      image_url: json['image_url'],
+    image_url: json['image_url']?.isNotEmpty == true ? json['image_url'] : null, // Manejo de imagen
       deleted: json['deleted'] ?? 0,
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'start_time': start_time.toIso8601String(),
+      'end_time': end_time?.toIso8601String(),
+      'description': description,
+      'category_id': category_id,
+      'organizer_id': organizer_id,
+      'category': category,
+      'category_name': category_name,
+      'location': location,
+      'latitude': null, // Opcional
+      'longitude': null, // Opcional
+      'max_attendees': null, // Opcional
+      'price': price,
+      'image_url': image_url,
+      'deleted': deleted,
+    };
+  }
+
   @override
   String toString() {
-    return 'Event{id: $id, title: $title, start_time: $start_time, end_time: $end_time, image_url: $image_url, category: $category, category_id: $category_id, category_name: $category_name, organizer_id: $organizer_id, description: $description, location: $location, price: $price, deleted: $deleted}';
+    return 'Event{id: $id, title: $title, start_time: $start_time, end_time: $end_time, image_url: $image_url, category: $category, category_id: $category_id, category_name: $category_name, organizer_id: $organizer_id, description: $description, location: $location, latitude: $latitude, longitude: $longitude, max_atendees: $max_atendees, price: $price, deleted: $deleted}';
   }
 }

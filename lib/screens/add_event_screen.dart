@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:eventify/services/organizer_service.dart';
-import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 
 class AddEventScreen extends StatefulWidget {
   final String token;
   final int organizer_id;
+  final List<dynamic> categories;
 
   const AddEventScreen({
     super.key,
     required this.token,
     required this.organizer_id,
+    required this.categories,
   });
 
   @override
@@ -23,17 +25,13 @@ class _AddEventScreenState extends State<AddEventScreen> {
   // Controladores de los campos
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _categoryIdController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _imageUrlController = TextEditingController();
-
   final TextEditingController _startTimeController = TextEditingController();
   final TextEditingController _endTimeController = TextEditingController();
 
-  DateTime? _selectedStartDate;
-  DateTime? _selectedEndDate;
-
+  String? _selectedCategoryName;
+  XFile? _selectedImage;
   bool _isSubmitting = false;
 
   @override
@@ -48,26 +46,39 @@ class _AddEventScreenState extends State<AddEventScreen> {
     setState(() => _isSubmitting = true);
 
     try {
+      final category = widget.categories.firstWhere(
+        (c) => c['name'] == _selectedCategoryName,
+        orElse: () => null,
+      );
+
+      if (category == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid category selection')),
+        );
+        return;
+      }
+
+      final category_id = category['id'];
+      final image_url = _selectedImage?.path ?? '';
+
       // Llamar al servicio
       await organizerService.createEvent(
         organizer_id: widget.organizer_id,
         title: _titleController.text,
         description: _descriptionController.text,
-        category_id: int.parse(_categoryIdController.text),
+        category_id: category_id,
         start_time: _startTimeController.text,
         end_time: _endTimeController.text,
         location: _locationController.text,
         price: double.parse(_priceController.text),
-        image_url: _imageUrlController.text,
+        image_url: image_url,
       );
 
-      // Mostrar mensaje de éxito
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Event created successfully!')),
       );
-      Navigator.of(context).pop(true); // Volver a la pantalla anterior
+      Navigator.of(context).pop(true);
     } catch (e) {
-      // Mostrar mensaje de error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to create event: $e')),
       );
@@ -76,25 +87,30 @@ class _AddEventScreenState extends State<AddEventScreen> {
     }
   }
 
-  Future<void> _pickDate(TextEditingController controller, bool isStart) async {
-    final DateTime? pickedDate = await showDatePicker(
+  Future<void> _pickDateTime(TextEditingController controller) async {
+    final pickedDate = await showDatePicker(
       context: context,
-      initialDate: isStart
-          ? _selectedStartDate ?? DateTime.now()
-          : _selectedEndDate ?? DateTime.now(),
+      initialDate: DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
 
     if (pickedDate != null) {
-      setState(() {
-        if (isStart) {
-          _selectedStartDate = pickedDate;
-        } else {
-          _selectedEndDate = pickedDate;
-        }
-        controller.text = pickedDate.toLocal().toString().split(' ')[0];
-      });
+      final pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
+
+      if (pickedTime != null) {
+        final dateTime = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+        controller.text = dateTime.toIso8601String();
+      }
     }
   }
 
@@ -119,16 +135,27 @@ class _AddEventScreenState extends State<AddEventScreen> {
                 ),
                 TextFormField(
                   controller: _descriptionController,
-                  decoration: const InputDecoration(labelText: 'Description'),
+                  decoration:
+                      const InputDecoration(labelText: 'Description'),
                   validator: (value) =>
                       value!.isEmpty ? 'Please enter a description' : null,
                 ),
-                TextFormField(
-                  controller: _categoryIdController,
-                  decoration: const InputDecoration(labelText: 'Category ID'),
-                  keyboardType: TextInputType.number,
+                DropdownButtonFormField<String>(
+                  value: _selectedCategoryName,
+                  decoration: const InputDecoration(labelText: 'Category'),
+                  items: widget.categories
+                      .map((category) => DropdownMenuItem<String>(
+                            value: category['name'],
+                            child: Text(category['name']),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategoryName = value;
+                    });
+                  },
                   validator: (value) =>
-                      value!.isEmpty ? 'Please enter a category ID' : null,
+                      value == null ? 'Please select a category' : null,
                 ),
                 TextFormField(
                   readOnly: true,
@@ -137,36 +164,7 @@ class _AddEventScreenState extends State<AddEventScreen> {
                     labelText: 'Start Time',
                     suffixIcon: Icon(Icons.calendar_today),
                   ),
-                  onTap: () async {
-                    final DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                    );
-
-                    if (pickedDate != null) {
-                      final TimeOfDay? pickedTime = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.now(),
-                      );
-
-                      if (pickedTime != null) {
-                        final DateTime fullDateTime = DateTime(
-                          pickedDate.year,
-                          pickedDate.month,
-                          pickedDate.day,
-                          pickedTime.hour,
-                          pickedTime.minute,
-                        );
-
-                        // Formatear al formato correcto
-                        _startTimeController.text =
-                            DateFormat("yyyy-MM-dd HH:mm:ss.SSS")
-                                .format(fullDateTime);
-                      }
-                    }
-                  },
+                  onTap: () => _pickDateTime(_startTimeController),
                 ),
                 TextFormField(
                   readOnly: true,
@@ -175,36 +173,7 @@ class _AddEventScreenState extends State<AddEventScreen> {
                     labelText: 'End Time',
                     suffixIcon: Icon(Icons.calendar_today),
                   ),
-                  onTap: () async {
-                    final DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                    );
-
-                    if (pickedDate != null) {
-                      final TimeOfDay? pickedTime = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.now(),
-                      );
-
-                      if (pickedTime != null) {
-                        final DateTime fullDateTime = DateTime(
-                          pickedDate.year,
-                          pickedDate.month,
-                          pickedDate.day,
-                          pickedTime.hour,
-                          pickedTime.minute,
-                        );
-
-                        // Formatear al formato correcto
-                        _endTimeController.text =
-                            DateFormat("yyyy-MM-dd HH:mm:ss.SSS")
-                                .format(fullDateTime);
-                      }
-                    }
-                  },
+                  onTap: () => _pickDateTime(_endTimeController),
                 ),
                 TextFormField(
                   controller: _locationController,
@@ -215,10 +184,21 @@ class _AddEventScreenState extends State<AddEventScreen> {
                   decoration: const InputDecoration(labelText: 'Price'),
                   keyboardType: TextInputType.number,
                 ),
-                TextFormField(
-                  controller: _imageUrlController,
-                  decoration: const InputDecoration(labelText: 'Image URL'),
+                ElevatedButton(
+                  onPressed: () async {
+                    final picker = ImagePicker();
+                    final pickedImage =
+                        await picker.pickImage(source: ImageSource.gallery);
+                    if (pickedImage != null) {
+                      setState(() {
+                        _selectedImage = pickedImage;
+                      });
+                    }
+                  },
+                  child: const Text('Select Image'),
                 ),
+                if (_selectedImage != null)
+                  Text('Selected Image: ${_selectedImage!.name}'),
                 const SizedBox(height: 20),
                 _isSubmitting
                     ? const CircularProgressIndicator()

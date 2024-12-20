@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:eventify/models/Event.dart';
 import '../api_constants.dart';
 
 class OrganizerService {
@@ -31,8 +32,6 @@ class OrganizerService {
 
   // Eliminar un evento
   Future<void> deleteEvent(int event_id) async {
-    print('ID que se enviará al backend: $event_id');
-
     final response = await http.post(
       Uri.parse('$baseUrl/eventDelete'),
       headers: {
@@ -42,8 +41,6 @@ class OrganizerService {
       },
       body: jsonEncode({'id': event_id}),
     );
-
-    print('Response: ${response.body}'); // Log para revisar respuesta
 
     if (response.statusCode != 200) {
       throw Exception('Error deleting event: ${response.body}');
@@ -87,7 +84,6 @@ class OrganizerService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('Event created successfully!');
       } else {
         final responseBody = jsonDecode(response.body);
         throw Exception('Failed to create event: ${responseBody['message']}');
@@ -98,57 +94,24 @@ class OrganizerService {
   }
 
   /// Actualiza un evento existente
-  Future<Map<String, dynamic>> updateEvent({
-    required int id,
-    required int organizer_id,
-    required String title,
-    String? description,
-    required int category_id,
-    required String start_time,
-    String? end_time,
-    String? location,
-    double? latitude,
-    double? longitude,
-    int? max_attendees,
-    double? price,
-    String? image_url,
-  }) async {
-    final url = Uri.parse('$baseUrl/eventUpdate');
+  Future<void> updateEvent(Event event) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/eventUpdate'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(event.toJson()),
+      );
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'id': id,
-        'organizer_id': organizer_id,
-        'title': title,
-        'description': description,
-        'category_id': category_id,
-        'start_time': start_time,
-        'end_time': end_time,
-        'location': location,
-        'latitude': latitude,
-        'longitude': longitude,
-        'max_attendees': max_attendees,
-        'price': price,
-        'image_url': image_url,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final responseData = jsonDecode(response.body);
-      if (responseData['success'] == true) {
-        return responseData;
-      } else {
-        throw Exception(responseData['message'] ?? 'Failed to update event');
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Error al actualizar el evento. Código: ${response.statusCode}');
       }
-    } else {
-      throw Exception(
-          'Failed to connect to the server: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error al actualizar el evento');
     }
   }
 }

@@ -20,7 +20,9 @@ dependencies:
   mailer: ^6.0.0
   permission_handler: ^10.4.1
   fl_chart: ^0.63.0
-
+  image_picker: ^0.8.6
+  shared_preferences: ^2.1.0
+  flutter_riverpod: ^2.0.0
 
 dev_dependencies:
   flutter_test:

@@ -8,11 +8,13 @@ class AuthProvider with ChangeNotifier {
   String? _token;
   String? _role;
   String? _email;
+  int? _id;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String? get token => _token;
   String? get role => _role;
   String? get email => _email;
+  int? get id => _id;
 
   Future<void> login(String email, String password) async {
     _isLoading = true;

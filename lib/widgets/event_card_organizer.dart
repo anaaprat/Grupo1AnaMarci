@@ -26,10 +26,12 @@ class EventCardOrganizer extends StatelessWidget {
         children: [
           if (event.image_url != null && event.image_url!.isNotEmpty)
             Image.network(
-              event.image_url!,
-              height: 150,
-              width: double.infinity,
-              fit: BoxFit.cover,
+              event.image_url ??
+                  'https://via.placeholder.com/150', // Imagen por defecto
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(Icons.broken_image,
+                    size: 50); // Ícono si hay error
+              },
             ),
           Padding(
             padding: const EdgeInsets.all(10.0),
