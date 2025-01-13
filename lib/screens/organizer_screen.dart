@@ -317,10 +317,7 @@ class _OrganizerScreenState extends State<OrganizerScreen>
       );
     }
 
-    return GraphicsScreen(
-      token: widget.token,
-      organizerId: organizer_id!,
-    );
+    return GraphicsScreen();
   }
 
   @override

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:eventify/services/user_service.dart';
 import 'package:eventify/services/email_service.dart';
 import 'package:eventify/screens/report_screen.dart';
+import 'package:eventify/screens/map_screen.dart';
 import 'package:eventify/widgets/event_card.dart';
 import 'package:eventify/widgets/filter_floating_button.dart';
 import 'package:eventify/models/event.dart';
@@ -42,7 +43,7 @@ class _UserScreenState extends State<UserScreen>
       smtpEmail: 'anaprat26@gmail.com',
       smtpPassword: 'mkxv hldp bxbd aneb',
     );
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     userProvider = UserProvider();
     _tabController.addListener(() {
       setState(() {
@@ -241,6 +242,7 @@ class _UserScreenState extends State<UserScreen>
               Tab(text: 'All Events'),
               Tab(text: 'My Events'),
               Tab(text: 'Report'),
+              Tab(text: 'Map'),
             ],
           ),
           actions: [
@@ -261,6 +263,11 @@ class _UserScreenState extends State<UserScreen>
                     token: widget.token,
                     emailService: emailService,
                     userEmail: widget.userEmail,
+                  ),
+                  MapScreen(
+                    token: widget.token,
+                    events:
+                        allEvents, // Pasa los eventos que quieres mostrar en el mapa
                   ),
                 ],
               ),

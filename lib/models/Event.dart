@@ -8,8 +8,8 @@ class Event {
   final String? category_name;
   final int? category_id;
   final int? organizer_id;
-  final int? latitude;
-  final int? longitude;
+  final double? latitude;
+  final double? longitude;
   final int? max_atendees;
   final String? description;
   final String? location;
@@ -35,27 +35,27 @@ class Event {
     this.deleted,
   });
 
-  factory Event.fromJson(Map<String, dynamic> json) {
-    return Event(
-      id: json['id'] ?? 0,
-      title: json['title'] ?? 'No title',
-      start_time: DateTime.tryParse(json['start_time'] ?? '') ?? DateTime.now(),
-      end_time:
-          json['end_time'] != null ? DateTime.tryParse(json['end_time']) : null,
-      description: json['description'] ?? 'No description',
-      category_id: json['category_id'] ?? 0,
-      organizer_id: json['organizer_id'] ?? 0,
-      category: json['category'] ?? 'General',
-      category_name: json['category_name'] ?? 'General',
-      location: json['location'] ?? 'No location',
-      latitude: json['latitude'] ?? 0,
-      longitude: json['longitude'] ?? 0,
-      max_atendees: json['max_atendees'] ?? 0,
-      price: json['price'] != null ? int.tryParse(json['price'].toString()) : 0,
-    image_url: json['image_url']?.isNotEmpty == true ? json['image_url'] : null, // Manejo de imagen
-      deleted: json['deleted'] ?? 0,
-    );
-  }
+factory Event.fromJson(Map<String, dynamic> json) {
+  return Event(
+    id: json['id'] ?? 0,
+    title: json['title'] ?? 'No title',
+    start_time: DateTime.tryParse(json['start_time'] ?? '') ?? DateTime.now(),
+    end_time: json['end_time'] != null ? DateTime.tryParse(json['end_time']) : null,
+    description: json['description'] ?? 'No description',
+    category_id: json['category_id'] ?? 0,
+    organizer_id: json['organizer_id'] ?? 0,
+    category: json['category'] ?? 'General',
+    category_name: json['category_name'] ?? 'General',
+    location: json['location'] ?? 'No location',
+    latitude: json['latitude'] != null ? json['latitude'].toDouble() : null, // Convertir a double
+    longitude: json['longitude'] != null ? json['longitude'].toDouble() : null, // Convertir a double
+    max_atendees: json['max_atendees'] ?? 0,
+    price: json['price'] != null ? (json['price'] as num).toInt() : 0, // Asegurar tipo int
+    image_url: json['image_url']?.isNotEmpty == true ? json['image_url'] : null,
+    deleted: json['deleted'] ?? 0,
+  );
+}
+
 
   Map<String, dynamic> toJson() {
     return {
