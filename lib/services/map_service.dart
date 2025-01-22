@@ -1,5 +1,7 @@
+// map_service.dart
 import 'dart:math';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import '../models/event.dart';
 
 class MapService {
@@ -52,13 +54,11 @@ class MapService {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // Verificar si el servicio de ubicación está habilitado
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       throw Exception('El servicio de ubicación está deshabilitado.');
     }
 
-    // Verificar permisos
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -74,5 +74,44 @@ class MapService {
 
     return await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
+  }
+
+  // Generar una ruta básica entre dos puntos
+  List<LatLng> generateRoute(LatLng start, LatLng end) {
+    final int steps = 10; // Número de puntos intermedios en la ruta
+    final double latStep = (end.latitude - start.latitude) / steps;
+    final double lonStep = (end.longitude - start.longitude) / steps;
+
+    List<LatLng> route = [];
+    for (int i = 0; i <= steps; i++) {
+      route.add(LatLng(
+        start.latitude + (latStep * i),
+        start.longitude + (lonStep * i),
+      ));
+    }
+    return route;
+  }
+
+  // Calcular el tiempo estimado de viaje
+  double estimatedTravelTime(List<LatLng> routePoints) {
+    // Asumir velocidad promedio de caminata: 5 km/h
+    const double walkingSpeedKmH = 5.0;
+    double totalDistanceKm = 0.0;
+
+    for (int i = 0; i < routePoints.length - 1; i++) {
+      totalDistanceKm += calculateDistance(
+        routePoints[i].latitude,
+        routePoints[i].longitude,
+        routePoints[i + 1].latitude,
+        routePoints[i + 1].longitude,
+      );
+    }
+
+    return (totalDistanceKm / walkingSpeedKmH) * 60; // Tiempo en minutos
+  }
+
+  // Obtener ruta generada manualmente
+  List<LatLng> getRoute(LatLng start, LatLng end) {
+    return generateRoute(start, end);
   }
 }

@@ -264,11 +264,7 @@ class _UserScreenState extends State<UserScreen>
                     emailService: emailService,
                     userEmail: widget.userEmail,
                   ),
-                  MapScreen(
-                    token: widget.token,
-                    events:
-                        allEvents, // Pasa los eventos que quieres mostrar en el mapa
-                  ),
+                  MapScreen(token: widget.token),
                 ],
               ),
         floatingActionButton: showFloatingButton

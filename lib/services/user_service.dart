@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../models/Event.dart';
 import '../api_constants.dart';
 
 class UserService {
@@ -46,6 +47,28 @@ class UserService {
     return data is List ? data : [];
   }
 
+  Future<List<Event>> getAllEventsMap() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/events'), // Reemplaza con tu URL real
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final responseBody = json.decode(response.body) as Map<String, dynamic>;
+      final eventList = responseBody['data'] as List<dynamic>;
+      return eventList
+          .map((event) => Event.fromJson(event as Map<String, dynamic>))
+          .toList();
+    } else {
+      print('Error: ${response.statusCode}');
+      print('Body: ${response.body}');
+      throw Exception('Error al obtener los eventos: ${response.statusCode}');
+    }
+  }
+
   // Obtener eventos por usuario
   Future<List<dynamic>> getUserEvents(int userId) async {
     final data = await _fetchData('eventsByUser', body: {'id': userId});
@@ -81,6 +104,4 @@ class UserService {
     final data = await _fetchData('users');
     return data is List ? data : [];
   }
-
-  
 }
