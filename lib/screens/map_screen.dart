@@ -447,9 +447,28 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                     ),
                   SizedBox(height: 16),
+                  if (evento.category != null)
+                    Text(
+                      "Categoría: ${evento.category}",
+                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                    ),
+                  Text(
+                    "Inicio: ${evento.start_time}",
+                    style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                  ),
+                  if (evento.end_time != null)
+                    Text(
+                      "Fin: ${evento.end_time}",
+                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                    ),
+                  if (evento.location != null)
+                    Text(
+                      "Ubicación: ${evento.location}",
+                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                    ),
+                  SizedBox(height: 16),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment
-                        .center, // Centra los botones horizontalmente
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       ElevatedButton(
                         onPressed: () {

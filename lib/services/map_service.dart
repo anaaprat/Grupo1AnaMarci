@@ -157,7 +157,7 @@ class MapService {
     double speedKmH;
     switch (transportProfile) {
       case "driving-car":
-        speedKmH = 50.0; // Velocidad promedio para coche
+        speedKmH = 30.0; // Velocidad promedio para coche
         break;
       case "cycling-regular":
         speedKmH = 15.0; // Velocidad promedio para bicicleta
