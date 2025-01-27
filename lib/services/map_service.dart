@@ -4,14 +4,13 @@ import 'package:latlong2/latlong.dart';
 import '../models/event.dart';
 
 class MapService {
-  // Calcular la distancia entre dos puntos en kilómetros
   double calculateDistance(
     double startLatitude,
     double startLongitude,
     double endLatitude,
     double endLongitude,
   ) {
-    const double earthRadius = 6371; // Radio de la Tierra en km
+    const double earthRadius = 6371; 
     final double dLat = _degreesToRadians(endLatitude - startLatitude);
     final double dLon = _degreesToRadians(endLongitude - startLongitude);
     final double a = sin(dLat / 2) * sin(dLat / 2) +
@@ -23,12 +22,10 @@ class MapService {
     return earthRadius * c;
   }
 
-  // Convertir grados a radianes
   double _degreesToRadians(double degrees) {
     return degrees * pi / 180;
   }
 
-  // Obtener eventos dentro de un radio
   List<Event> getEventsWithinRadius(
     Position currentPosition,
     List<Event> events,
@@ -48,7 +45,6 @@ class MapService {
     }).toList();
   }
 
-  // Obtener posición actual del usuario
   Future<Position> getCurrentPosition() async {
     bool serviceEnabled;
     LocationPermission permission;
@@ -75,9 +71,8 @@ class MapService {
         desiredAccuracy: LocationAccuracy.high);
   }
 
-  // Generar una ruta básica entre dos puntos
   List<LatLng> generateRoute(LatLng start, LatLng end) {
-    final int steps = 10; // Número de puntos intermedios en la ruta
+    final int steps = 10; 
     final double latStep = (end.latitude - start.latitude) / steps;
     final double lonStep = (end.longitude - start.longitude) / steps;
 
@@ -97,16 +92,16 @@ class MapService {
 
     switch (transportProfile) {
       case "driving-car":
-        speedKmH = 50.0; // Velocidad promedio para coche
+        speedKmH = 50.0; 
         break;
       case "cycling-regular":
-        speedKmH = 15.0; // Velocidad promedio para bicicleta
+        speedKmH = 15.0; 
         break;
       case "foot-walking":
-        speedKmH = 5.0; // Velocidad promedio para caminar
+        speedKmH = 5.0; 
         break;
       default:
-        speedKmH = 5.0; // Por defecto, caminar
+        speedKmH = 5.0; 
     }
 
     double totalDistanceKm = 0.0;
@@ -120,17 +115,13 @@ class MapService {
       );
     }
 
-    // Redondear el tiempo estimado en minutos
     return ((totalDistanceKm / speedKmH) * 60).roundToDouble();
   }
 
-  // Obtener ruta generada manualmente
   Future<Map<String, dynamic>> getRoute(
       LatLng start, LatLng end, String transportProfile) async {
-    // const double earthRadius = 6371; // Radio de la Tierra en km
 
-    // Simulación de ruta calculada dinámicamente
-    final int steps = 10; // Número de puntos intermedios
+    final int steps = 10; 
     final double latStep = (end.latitude - start.latitude) / steps;
     final double lonStep = (end.longitude - start.longitude) / steps;
 
@@ -142,7 +133,6 @@ class MapService {
       ));
     }
 
-    // Calcular distancia total
     double totalDistanceKm = 0.0;
     for (int i = 0; i < route.length - 1; i++) {
       totalDistanceKm += calculateDistance(
@@ -153,28 +143,27 @@ class MapService {
       );
     }
 
-    // Calcular tiempo estimado según el perfil de transporte
     double speedKmH;
     switch (transportProfile) {
       case "driving-car":
-        speedKmH = 30.0; // Velocidad promedio para coche
+        speedKmH = 30.0; 
         break;
       case "cycling-regular":
-        speedKmH = 15.0; // Velocidad promedio para bicicleta
+        speedKmH = 15.0; 
         break;
       case "foot-walking":
-        speedKmH = 5.0; // Velocidad promedio para caminar
+        speedKmH = 5.0;
         break;
       default:
-        speedKmH = 5.0; // Por defecto, caminar
+        speedKmH = 5.0; 
     }
 
     double travelTimeMinutes = (totalDistanceKm / speedKmH) * 60;
 
     return {
-      "route": route, // Lista de puntos LatLng que forman la ruta
-      "distance": totalDistanceKm, // Distancia total en kilómetros
-      "travelTime": travelTimeMinutes, // Tiempo estimado en minutos
+      "route": route, 
+      "distance": totalDistanceKm, 
+      "travelTime": travelTimeMinutes, 
     };
   }
 }

@@ -7,7 +7,7 @@ import 'dart:convert';
 
 import '../../../models/Event.dart';
 import '../../../services/user_service.dart';
-import '../../../services/map_service.dart'; // Incluye MapService
+import '../../../services/map_service.dart'; 
 
 class MapScreen extends StatefulWidget {
   @override
@@ -24,18 +24,16 @@ class _MapScreenState extends State<MapScreen> {
   late Future<List<Event>> _eventosFuture;
   late UserService userService;
 
-  // Perfil de transporte seleccionado (coche, bicicleta, andando)
-  String _transportProfile = "driving-car"; // Perfil por defecto
+  String _transportProfile = "driving-car"; 
   final MapService _mapService = MapService();
 
-  // URL de la API de OpenRouteService
   final String _routeUrl = 'https://api.openrouteservice.org/v2/directions/';
   final String _apiKey =
       '5b3ce3597851110001cf62481384cfa99d1d4927b5d7df80de7f8eb5';
 
   List<LatLng> _route = [];
   bool _routeVisible = false;
-  String _travelTime = ""; // Tiempo estimado de viaje
+  String _travelTime = ""; 
 
   @override
   void initState() {
@@ -114,7 +112,6 @@ class _MapScreenState extends State<MapScreen> {
             _route = route.map<LatLng>((e) => LatLng(e[1], e[0])).toList();
             _routeVisible = true;
 
-            // Calcula el tiempo estimado de viaje
             double time =
                 _mapService.estimatedTravelTime(_route, _transportProfile);
             _travelTime = "${time.toStringAsFixed(2)} minutos";
@@ -135,7 +132,6 @@ class _MapScreenState extends State<MapScreen> {
       _transportProfile = profile;
     });
 
-    // Recalcular la ruta con la nueva opción
     _getRoute(destination);
   }
 
@@ -166,7 +162,6 @@ class _MapScreenState extends State<MapScreen> {
                   List<Event> eventos = snapshot.data!;
                   Map<String, List<Event>> groupedEvents = {};
 
-                  // Agrupar eventos por coordenadas
                   for (var evento in eventos) {
                     String key = "${evento.latitude},${evento.longitude}";
                     if (!groupedEvents.containsKey(key)) {
@@ -202,7 +197,6 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                       MarkerLayer(
                         markers: [
-                          // Marcador para la ubicación del usuario
                           if (_currentLocation != null)
                             Marker(
                               point: LatLng(
@@ -215,7 +209,6 @@ class _MapScreenState extends State<MapScreen> {
                                 size: 50.0,
                               ),
                             ),
-                          // Marcadores para eventos
                           ...groupedEvents.entries.map((entry) {
                             final eventsAtLocation = entry.value;
                             final firstEvent = eventsAtLocation.first;
@@ -297,7 +290,7 @@ class _MapScreenState extends State<MapScreen> {
                     onChanged: (value) {
                       if (value != null) {
                         LatLng destination =
-                            _route.last; // Cambia según tu lógica
+                            _route.last; 
                         _updateTransportProfile(value, destination);
                       }
                     },
@@ -409,7 +402,7 @@ class _MapScreenState extends State<MapScreen> {
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
           child: Container(
-            width: double.infinity, // Ocupa todo el ancho disponible
+            width: double.infinity, 
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -426,7 +419,7 @@ class _MapScreenState extends State<MapScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment
-                    .center, // Centra los elementos horizontalmente
+                    .center, 
                 children: [
                   Text(
                     evento.title,
