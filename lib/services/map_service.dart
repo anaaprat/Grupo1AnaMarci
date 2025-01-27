@@ -1,4 +1,3 @@
-// map_service.dart
 import 'dart:math';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -92,10 +91,24 @@ class MapService {
     return route;
   }
 
-  // Calcular el tiempo estimado de viaje
-  double estimatedTravelTime(List<LatLng> routePoints) {
-    // Asumir velocidad promedio de caminata: 5 km/h
-    const double walkingSpeedKmH = 5.0;
+  double estimatedTravelTime(
+      List<LatLng> routePoints, String transportProfile) {
+    double speedKmH;
+
+    switch (transportProfile) {
+      case "driving-car":
+        speedKmH = 50.0; // Velocidad promedio para coche
+        break;
+      case "cycling-regular":
+        speedKmH = 15.0; // Velocidad promedio para bicicleta
+        break;
+      case "foot-walking":
+        speedKmH = 5.0; // Velocidad promedio para caminar
+        break;
+      default:
+        speedKmH = 5.0; // Por defecto, caminar
+    }
+
     double totalDistanceKm = 0.0;
 
     for (int i = 0; i < routePoints.length - 1; i++) {
@@ -107,11 +120,61 @@ class MapService {
       );
     }
 
-    return (totalDistanceKm / walkingSpeedKmH) * 60; // Tiempo en minutos
+    // Redondear el tiempo estimado en minutos
+    return ((totalDistanceKm / speedKmH) * 60).roundToDouble();
   }
 
   // Obtener ruta generada manualmente
-  List<LatLng> getRoute(LatLng start, LatLng end) {
-    return generateRoute(start, end);
+  Future<Map<String, dynamic>> getRoute(
+      LatLng start, LatLng end, String transportProfile) async {
+    // const double earthRadius = 6371; // Radio de la Tierra en km
+
+    // Simulación de ruta calculada dinámicamente
+    final int steps = 10; // Número de puntos intermedios
+    final double latStep = (end.latitude - start.latitude) / steps;
+    final double lonStep = (end.longitude - start.longitude) / steps;
+
+    List<LatLng> route = [];
+    for (int i = 0; i <= steps; i++) {
+      route.add(LatLng(
+        start.latitude + (latStep * i),
+        start.longitude + (lonStep * i),
+      ));
+    }
+
+    // Calcular distancia total
+    double totalDistanceKm = 0.0;
+    for (int i = 0; i < route.length - 1; i++) {
+      totalDistanceKm += calculateDistance(
+        route[i].latitude,
+        route[i].longitude,
+        route[i + 1].latitude,
+        route[i + 1].longitude,
+      );
+    }
+
+    // Calcular tiempo estimado según el perfil de transporte
+    double speedKmH;
+    switch (transportProfile) {
+      case "driving-car":
+        speedKmH = 50.0; // Velocidad promedio para coche
+        break;
+      case "cycling-regular":
+        speedKmH = 15.0; // Velocidad promedio para bicicleta
+        break;
+      case "foot-walking":
+        speedKmH = 5.0; // Velocidad promedio para caminar
+        break;
+      default:
+        speedKmH = 5.0; // Por defecto, caminar
+    }
+
+    double travelTimeMinutes = (totalDistanceKm / speedKmH) * 60;
+
+    return {
+      "route": route, // Lista de puntos LatLng que forman la ruta
+      "distance": totalDistanceKm, // Distancia total en kilómetros
+      "travelTime": travelTimeMinutes, // Tiempo estimado en minutos
+    };
   }
 }
